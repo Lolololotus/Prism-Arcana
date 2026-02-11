@@ -2,8 +2,7 @@ import ChatWindow from "@/components/ChatWindow";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-[conic-gradient(at_top_right,_var(--tw-gradient-stops))] from-gray-900 via-purple-900 to-black text-white">
-      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 text-white">
       <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
         {/* Header/Logo placeholder if needed */}
       </div>
