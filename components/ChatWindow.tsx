@@ -1,15 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Send, Sparkles, X, Play, ShieldCheck, Lock, Unlock, CreditCard } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { calculateLifePathNumber, ArcanaCard } from "@/lib/tarot";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
+import RewardAdModal from "./RewardAdModal";
+import { initializePayment, requestPayment } from "@/lib/payment";
 
 interface Message {
     id: string;
@@ -31,7 +28,15 @@ export default function ChatWindow({
     const [step, setStep] = useState<"birthdate" | "chat">("birthdate");
     const [tarotCard, setTarotCard] = useState<ArcanaCard | null>(null);
     const [moodColor, setMoodColor] = useState("from-gray-900 via-purple-900 to-black");
+    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [showAd, setShowAd] = useState(false);
+    const [isHighResUnlocked, setIsHighResUnlocked] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        initializePayment(); // Load Portone Script
+    }, []);
 
     useEffect(() => {
         // Initial greeting
@@ -98,11 +103,14 @@ export default function ChatWindow({
                     const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
 
                     if (jsonMatch) {
-                        console.log("Retrieval Complete:", JSON.parse(jsonMatch[1]));
-                        // Potentially strip JSON from display or handle "Phase 3" transition here
+                        const retrievalData = JSON.parse(jsonMatch[1]);
+                        console.log("Retrieval Complete:", retrievalData);
+
                         const cleanContent = content.replace(/```json\n[\s\S]*?\n```/, "").trim();
                         addMessage("ai", cleanContent);
-                        // TODO: Transition to Image Generation Phase
+
+                        // Start Image Generation
+                        generateStainedGlass(retrievalData);
                     } else {
                         addMessage("ai", content);
                     }
@@ -167,11 +175,6 @@ export default function ChatWindow({
         );
 
         addMessage("ai", resultMessage);
-
-        // Follow up message - Removed hardcoded message, now handled by triggerInitialGreeting
-        // setTimeout(() => {
-        //     addMessage("ai", "이 카드는 당신의 영혼이 지닌 고유한 빛깔을 의미합니다. 이 결과에 대해 어떻게 생각하시나요?");
-        // }, 1500);
     };
 
     const triggerInitialGreeting = async (card: ArcanaCard) => {
@@ -213,13 +216,44 @@ export default function ChatWindow({
         }
     };
 
+    const generateStainedGlass = async (data: any) => {
+        setIsGenerating(true);
+        try {
+            // Prompt Engineering for Stained Glass
+            const prompt = `
+                Stained glass artwork of ${data.card_name}.
+                Central elements: ${data.objects.join(", ")}.
+                Primary colors: ${data.primary_color}.
+                Atmosphere: ${data.mood}.
+                Intricate lead lines, vibrant translucent glass, glowing light from behind.
+                Masterpiece, 8k resolution, highly detailed texture.
+                No text, no watermark, no realistic photo.
+            `;
+
+            const response = await fetch("/api/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt }),
+            });
+
+            const result = await response.json();
+            if (result.image) {
+                setGeneratedImage(result.image);
+                addMessage("ai", "당신의 사유가 빛으로 형상화되었습니다.");
+            } else {
+                throw new Error(result.error || "Image generation failed");
+            }
+        } catch (error) {
+            console.error(error);
+            addMessage("ai", "이미지 생성 중 오류가 발생했습니다. (Google Imagen API 확인 필요)");
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
     return (
         <div className={cn(
             "flex flex-col h-[80vh] w-full max-w-2xl mx-auto rounded-2xl overflow-hidden relative transition-colors duration-1000 glass-panel",
-            // moodColor - removed to respect design spec "Deep Navy to Purple" fixed gradient, or blend it. 
-            // User asked for "Deep Navy to Purple" background. 
-            // Phase 2 mood logic might conflict with "Deep Navy". I will keep mood logic but make it subtle overlay or border.
-            // For now, let's respect the "glass-panel" look which has its own background.
         )}>
             {/* Header */}
             <div className="p-4 border-b border-white/10 flex items-center justify-between glass-glow">
@@ -268,9 +302,78 @@ export default function ChatWindow({
                             </div>
                         </motion.div>
                     )}
+                    {isGenerating && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex justify-center w-full py-4"
+                        >
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="w-12 h-12 border-4 border-amber-500/30 border-t-amber-400 rounded-full animate-spin"></div>
+                                <span className="text-xs text-amber-200 font-serif animate-pulse">Forging Stained Glass...</span>
+                            </div>
+                        </motion.div>
+                    )}
+                    {generatedImage && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="w-full flex flex-col items-center gap-4 py-4"
+                        >
+                            <div className="relative group rounded-xl overflow-hidden shadow-2xl border-2 border-amber-500/50">
+                                <img
+                                    src={generatedImage}
+                                    alt="Stained Glass Result"
+                                    className={cn(
+                                        "max-w-xs md:max-w-sm w-full h-auto object-cover transition-all duration-700",
+                                        isHighResUnlocked ? "blur-0" : "blur-sm"
+                                    )}
+                                />
+                                {!isHighResUnlocked && (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
+                                        <Lock className="w-8 h-8 text-white/70 mb-2" />
+                                        <button
+                                            onClick={() => setShowAd(true)}
+                                            className="px-6 py-2 bg-gradient-to-r from-purple-600 to-amber-600 hover:from-purple-500 hover:to-amber-500 text-white font-serif rounded-full shadow-lg transition-all flex items-center gap-2 border border-white/20"
+                                        >
+                                            <Play className="w-4 h-4 fill-current" />
+                                            Unlock High Res
+                                        </button>
+                                        <p className="text-xs text-white/50 mt-2">Watch a short brand film</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {isHighResUnlocked && (
+                                <div className="flex gap-3">
+                                    <button className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-100/80 border border-white/10 rounded-xl text-sm font-sans transition-colors flex items-center gap-2">
+                                        <Unlock className="w-4 h-4" />
+                                        Save Image
+                                    </button>
+                                    <button
+                                        onClick={() => requestPayment("Prism Arcana Keyring", 35000, "user@example.com", () => alert("결제가 완료되었습니다!"), (msg) => alert(`결제 실패: ${msg}`))}
+                                        className="px-5 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white border border-amber-400/30 rounded-xl text-sm font-bold shadow-lg shadow-amber-900/20 transition-all flex items-center gap-2"
+                                    >
+                                        <CreditCard className="w-4 h-4" />
+                                        Order Keyring (35,000₩)
+                                    </button>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
                 </AnimatePresence>
                 <div ref={messagesEndRef} />
             </div>
+
+            <RewardAdModal
+                isOpen={showAd}
+                onClose={() => setShowAd(false)}
+                onReward={() => {
+                    setIsHighResUnlocked(true);
+                    setShowAd(false);
+                    addMessage("ai", "고해상도 이미지가 해금되었습니다. 이제 실물 키링으로 소장하실 수 있습니다.");
+                }}
+            />
 
             {/* Input Area */}
             <form onSubmit={handleSendMessage} className="p-4 border-t border-white/10 flex gap-2 bg-slate-900/30">
