@@ -110,7 +110,13 @@ export default function ChatWindow({
                         addMessage("ai", cleanContent);
 
                         // Start Image Generation
-                        generateStainedGlass(retrievalData);
+                        if (retrievalData.objects && retrievalData.primary_color) {
+                            // Full Retrieval Complete
+                            generateStainedGlass(retrievalData);
+                        } else if (retrievalData.target_object) {
+                            // Intermediate Object Extraction
+                            console.log("Target Object Detected:", retrievalData.target_object);
+                        }
                     } else {
                         addMessage("ai", content);
                     }
@@ -376,21 +382,29 @@ export default function ChatWindow({
             />
 
             {/* Input Area */}
-            <form onSubmit={handleSendMessage} className="p-4 border-t border-white/10 flex gap-2 bg-slate-900/30">
-                <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder={step === "birthdate" ? "YYYYMMDD (예: 19900101)" : "당신의 이야기를 들려주세요..."}
-                    className="flex-1 bg-slate-950/50 border border-purple-500/30 rounded-xl px-4 py-3 text-purple-100 placeholder-purple-400/50 focus:outline-none focus:ring-1 focus:ring-amber-400/50 transition-all font-sans"
-                />
-                <button
-                    type="submit"
-                    disabled={!input.trim() || isLoading}
-                    className="p-3 bg-purple-900/50 hover:bg-purple-800/50 border border-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-amber-200 transition-colors shadow-lg"
-                >
-                    <Send className="w-5 h-5" />
-                </button>
+            <form onSubmit={handleSendMessage} className="p-4 border-t border-white/10 flex flex-col gap-2 bg-slate-900/30">
+                {step === "chat" && (
+                    <div className="flex items-center gap-2 px-1">
+                        <Sparkles className="w-3 h-3 text-purple-400 animate-pulse" />
+                        <span className="text-xs text-purple-300/70 font-serif">지미니가 당신의 이야기를 기다리고 있어요...</span>
+                    </div>
+                )}
+                <div className="flex gap-2">
+                    <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder={step === "birthdate" ? "YYYYMMDD (예: 19900101)" : "당신의 이야기를 들려주세요..."}
+                        className="flex-1 bg-slate-950/50 border border-purple-500/30 rounded-xl px-4 py-3 text-purple-100 placeholder-purple-400/50 focus:outline-none focus:ring-1 focus:ring-amber-400/50 transition-all font-sans"
+                    />
+                    <button
+                        type="submit"
+                        disabled={!input.trim() || isLoading}
+                        className="p-3 bg-purple-900/50 hover:bg-purple-800/50 border border-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-amber-200 transition-colors shadow-lg"
+                    >
+                        <Send className="w-5 h-5" />
+                    </button>
+                </div>
             </form>
         </div>
     );

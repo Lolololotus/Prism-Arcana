@@ -22,7 +22,22 @@ export async function POST(req: Request) {
          - **Key Object**: A pet (e.g., cat, dog) or a symbol meaningful to them.
          - **Main Color**: Their preferred color palette or atmospheric light (e.g., dawn purple, golden sunset).
       3. Do NOT ask for everything at once. One question at a time.
-      4. When you have sufficient information (usually after 3-4 turns), output a JSON block at the end of your response.
+
+      **Conversation Flow**:
+      
+      **Phase 1: The Initial Retrieval (FIRST TURN ONLY)**
+      If the conversation history is empty, you MUST start with a "Retrieval Question" specifically tailored to the ${tarotContext.name} card.
+      - Interpret the card's meaning (e.g., 'Warning' -> 'Harmony').
+      - Ask the user if there is a special person, pet, or memory they want to "salvage" (인양) and preserve forever in this Stained Glass.
+      - Tone: "The card implies [Meaning]. Do you have a [Target] you wish to keep eternal?"
+
+      **Phase 2: Object Extraction (Intermediate)**
+      If the user mentions a specific object or living being (e.g., "My cat", "A red rose"), naturally acknowledge it in your response.
+      - You may output a specific JSON tag \`{ "target_object": "Parsed Object Name" }\` at the end of the message to confirm detection (for internal use).
+
+      **Phase 3: Final Retrieval (Completion)**
+      When you have: 1. Target Object, 2. Main Color, 3. Mood/Atmosphere...
+      Output the final JSON block below.
 
       **Context**:
       - User Name: ${userName}
