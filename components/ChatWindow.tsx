@@ -27,8 +27,10 @@ export default function ChatWindow({
 }: ChatWindowProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
-    const [isTyping, setIsTyping] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [step, setStep] = useState<"birthdate" | "chat">("birthdate");
+    const [tarotCard, setTarotCard] = useState<ArcanaCard | null>(null);
+    const [moodColor, setMoodColor] = useState("from-gray-900 via-purple-900 to-black");
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -61,23 +63,61 @@ export default function ChatWindow({
 
     const handleSendMessage = async (e?: React.FormEvent) => {
         e?.preventDefault();
-        if (!input.trim()) return;
+        if (!input.trim() || isLoading) return;
 
         const userInput = input.trim();
         setInput("");
+        updateMood(userInput); // Update mood based on input
         addMessage("user", userInput);
-        setIsTyping(true);
 
-        // Simulate AI processing
-        setTimeout(() => {
-            setIsTyping(false);
-            processInput(userInput);
-        }, 1000);
+        if (step === "birthdate") {
+            setIsLoading(true);
+            // Simulate processing for birthdate (or keep local if strictly calculating)
+            setTimeout(() => {
+                setIsLoading(false);
+                processInput(userInput);
+            }, 1000);
+        } else {
+            // Chat phase
+            setIsLoading(true);
+            try {
+                const response = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        messages: messages.map(msg => ({ role: msg.role, content: typeof msg.content === 'string' ? msg.content : '...' })), // Send string content
+                        tarotContext: tarotCard
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (data.role === 'ai') {
+                    // Check for JSON block in response
+                    const content = data.content;
+                    const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
+
+                    if (jsonMatch) {
+                        console.log("Retrieval Complete:", JSON.parse(jsonMatch[1]));
+                        // Potentially strip JSON from display or handle "Phase 3" transition here
+                        const cleanContent = content.replace(/```json\n[\s\S]*?\n```/, "").trim();
+                        addMessage("ai", cleanContent);
+                        // TODO: Transition to Image Generation Phase
+                    } else {
+                        addMessage("ai", content);
+                    }
+                }
+            } catch (error) {
+                console.error(error);
+                addMessage("ai", "오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+            } finally {
+                setIsLoading(false);
+            }
+        }
     };
 
     const processInput = (text: string) => {
         if (step === "birthdate") {
-            // Basic validation for 8 digits
             const birthdateRegex = /^\d{8}$/;
             if (!birthdateRegex.test(text.replace(/\s/g, ""))) {
                 addMessage(
@@ -89,14 +129,17 @@ export default function ChatWindow({
 
             try {
                 const card = calculateLifePathNumber(text);
+                setTarotCard(card); // Store card context
                 displayTarotResult(card);
-                setStep("chat"); // Move to next phase (placeholder for now)
+                setStep("chat");
+
+                // Trigger initial AI greeting
+                setTimeout(() => {
+                    triggerInitialGreeting(card);
+                }, 500);
             } catch (error) {
                 addMessage("ai", "계산 중 오류가 발생했습니다. 다시 시도해주세요.");
             }
-        } else {
-            // Fallback for Phase 2 (Conversation) - D-5 Scope: Just echo or placeholder
-            addMessage("ai", "당신의 사유를 더 깊이 들여다보고 있습니다... (AI 연동 준비 중)");
         }
     };
 
@@ -125,25 +168,70 @@ export default function ChatWindow({
 
         addMessage("ai", resultMessage);
 
-        // Follow up message
-        setTimeout(() => {
-            addMessage("ai", "이 카드는 당신의 영혼이 지닌 고유한 빛깔을 의미합니다. 이 결과에 대해 어떻게 생각하시나요?");
-        }, 1500);
+        // Follow up message - Removed hardcoded message, now handled by triggerInitialGreeting
+        // setTimeout(() => {
+        //     addMessage("ai", "이 카드는 당신의 영혼이 지닌 고유한 빛깔을 의미합니다. 이 결과에 대해 어떻게 생각하시나요?");
+        // }, 1500);
+    };
+
+    const triggerInitialGreeting = async (card: ArcanaCard) => {
+        setIsLoading(true);
+        try {
+            const response = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    messages: [], // Empty history for initial greeting
+                    tarotContext: card,
+                    userName: "Lotus" // Hardcoded for now per request
+                }),
+            });
+
+            const data = await response.json();
+            if (data.role === 'ai') {
+                addMessage("ai", data.content);
+            }
+        } catch (error) {
+            console.error(error);
+            addMessage("ai", "지미니가 당신의 사유를 읽는 데 어려움을 겪고 있습니다.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    /* Mood Analysis Simulation */
+    const updateMood = (text: string) => {
+        // Simple sentiment simulation based on keywords
+        if (text.includes("사랑") || text.includes("좋아") || text.includes("행복")) {
+            setMoodColor("from-pink-900 via-red-900 to-black");
+        } else if (text.includes("슬픔") || text.includes("우울") || text.includes("힘들")) {
+            setMoodColor("from-blue-900 via-gray-900 to-black");
+        } else if (text.includes("꿈") || text.includes("미래") || text.includes("희망")) {
+            setMoodColor("from-indigo-900 via-purple-900 to-black");
+        } else {
+            setMoodColor("from-gray-900 via-purple-900 to-black");
+        }
     };
 
     return (
-        <div className="flex flex-col h-[80vh] w-full max-w-2xl mx-auto bg-gray-900/80 rounded-2xl shadow-2xl overflow-hidden border border-gray-700 backdrop-blur-md relative">
+        <div className={cn(
+            "flex flex-col h-[80vh] w-full max-w-2xl mx-auto rounded-2xl overflow-hidden relative transition-colors duration-1000 glass-panel",
+            // moodColor - removed to respect design spec "Deep Navy to Purple" fixed gradient, or blend it. 
+            // User asked for "Deep Navy to Purple" background. 
+            // Phase 2 mood logic might conflict with "Deep Navy". I will keep mood logic but make it subtle overlay or border.
+            // For now, let's respect the "glass-panel" look which has its own background.
+        )}>
             {/* Header */}
-            <div className="p-4 border-b border-gray-700 bg-black/50 flex items-center justify-between">
+            <div className="p-4 border-b border-white/10 flex items-center justify-between glass-glow">
                 <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-purple-400" />
-                    <span className="font-serif text-lg text-gray-100 tracking-wider">Jimini</span>
+                    <Sparkles className="w-5 h-5 text-amber-400" />
+                    <span className="font-serif text-lg text-purple-100 tracking-wider">Jimini</span>
                 </div>
-                <div className="text-xs text-gray-500">Prism Arcana v0.1</div>
+                <div className="text-xs text-purple-300 font-serif">Prism Arcana v0.2</div>
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-700">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-purple-900/50">
                 <AnimatePresence>
                     {messages.map((msg) => (
                         <motion.div
@@ -158,26 +246,25 @@ export default function ChatWindow({
                         >
                             <div
                                 className={cn(
-                                    "max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed shadow-md",
+                                    "max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed shadow-lg backdrop-blur-sm border",
                                     msg.role === "user"
-                                        ? "bg-purple-600 text-white rounded-br-none"
-                                        : "bg-gray-800 text-gray-100 rounded-bl-none border border-gray-700"
+                                        ? "bg-purple-900/40 text-purple-50 border-purple-500/30 rounded-br-none"
+                                        : "bg-slate-900/60 text-slate-100 border-amber-500/10 rounded-bl-none font-serif"
                                 )}
                             >
                                 {msg.content}
                             </div>
                         </motion.div>
                     ))}
-                    {isTyping && (
+                    {isLoading && (
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             className="flex justify-start w-full"
                         >
-                            <div className="bg-gray-800 p-4 rounded-2xl rounded-bl-none border border-gray-700 flex gap-1">
-                                <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                                <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                                <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                            <div className="bg-slate-900/60 p-4 rounded-2xl rounded-bl-none border border-amber-500/10 flex gap-2 items-center">
+                                <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+                                <span className="text-xs text-purple-300 font-serif">Jimini is reading your thoughts...</span>
                             </div>
                         </motion.div>
                     )}
@@ -186,18 +273,18 @@ export default function ChatWindow({
             </div>
 
             {/* Input Area */}
-            <form onSubmit={handleSendMessage} className="p-4 bg-black/50 border-t border-gray-700 flex gap-2">
+            <form onSubmit={handleSendMessage} className="p-4 border-t border-white/10 flex gap-2 bg-slate-900/30">
                 <input
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder={step === "birthdate" ? "생년월일 8자리를 입력하세요 (예: 19900101)" : "메시지를 입력하세요..."}
-                    className="flex-1 bg-gray-800/50 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-sans"
+                    placeholder={step === "birthdate" ? "YYYYMMDD (예: 19900101)" : "당신의 이야기를 들려주세요..."}
+                    className="flex-1 bg-slate-950/50 border border-purple-500/30 rounded-xl px-4 py-3 text-purple-100 placeholder-purple-400/50 focus:outline-none focus:ring-1 focus:ring-amber-400/50 transition-all font-sans"
                 />
                 <button
                     type="submit"
-                    disabled={!input.trim() || isTyping}
-                    className="p-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-white transition-colors shadow-lg shadow-purple-900/20"
+                    disabled={!input.trim() || isLoading}
+                    className="p-3 bg-purple-900/50 hover:bg-purple-800/50 border border-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-amber-200 transition-colors shadow-lg"
                 >
                     <Send className="w-5 h-5" />
                 </button>
