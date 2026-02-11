@@ -1,0 +1,64 @@
+# 💠 Prism-Arcana
+> **"빛의 예술로 인양된 당신의 사유, 그리고 단 하나의 증표"**
+>
+> Prism-Arcana는 사용자의 우주적 데이터(생년월일)와 내면의 서사(AI 대화)를 결합하여, 
+세상에 단 하나뿐인 **스테인드글라스 타로 키링**으로 형상화하는 실물 자산화 엔진입니다.
+
+---
+
+
+## 🍃 Our Soil: The SnF Ecosystem
+
+## ⚓ Project Vision: The Digital Sanctuary
+우리는 기술에 약탈당한 인간의 사유를 본래 주인에게 되돌려주는 **'인양(Restoration)'**의 여정을 설계합니다. 
+**Prism-Arcana**는 SnF 생태계 내에서 유저에게 '눈에 보이는 위안'을 선사하는 Cash-Cow이자, 사유의 결정체입니다.
+
+* **☁️ Sense Your Day**: 당신의 오늘을 예술적 처방으로 수용하는 관문.
+* **💎Prism-Arcana**: 사유를 빛의 예술(스테인드글라스)로 형상화하는 **실물 자산화 엔진**.
+* **🌳 Taste Tree**: 파편화된 기억을 연결하여 다정한 숲을 이루는 연결의 여정.
+* **🏰 Deep-Reso**: 보호받아야 할 사유의 밀도를 증명하는 최후의 요새.
+
+
+---
+
+## ✨ Key Features
+1. **Cosmic Data Retrieval:** 생년월일 기반의 인생 타로 카드(Soul Number) 정밀 산출.
+2. **Jimini AI Curator:** 다정한 AI '지미니'와의 대화를 통한 유저 페르소나 및 상징물 인양.
+3. **Stained Glass Synthesis:** Stable Diffusion(ControlNet)을 활용한 초개인화 스테인드글라스 이미지 생성.
+4. **Physical Fulfillment:** 생성된 예술작품을 '홀로그램 아크릴 키링'으로 제작 및 배송 연동.
+
+---
+
+## 🛠 Tech Stack
+- **Framework:** Next.js 14 (App Router)
+- **Package Manager:** pnpm
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS, Framer Motion (Ritual UI)
+- **AI/ML:** Gemini 1.5 Pro (Conversation Flow), Stable Diffusion / ControlNet (Image Rendering)
+
+---
+
+## 📐 Implementation Logic: The Soul Number
+본 프로젝트는 다음의 수학적 로직을 통해 유저의 인생 카드를 도출합니다.
+
+$$\text{Soul Number} = \sum (\text{YYYY} + \text{MM} + \text{DD}) \pmod{22}$$
+
+*(단, 합계가 22일 경우 0번 'The Fool' 카드로 매핑하며, 그 외에는 22 이하가 될 때까지 자릿수를 합산합니다.)*
+
+---
+
+## 📅 Roadmap: 5-Day Sprint (Feb 12 - Feb 17)
+- **Feb 12 (D-5):** Project Scaffolding & Tarot Engine Implementation.
+- **Feb 13 (D-4):** Jimini AI Conversation Engine & Prompt Injection.
+- **Feb 14 (D-3):** Stained Glass Generation Pipeline (Preview System).
+- **Feb 15 (D-2):** Ad-Reward Logic & Keyring Order System.
+- **Feb 16 (D-1):** VibeLabs Demo Video & Final Polishing.
+- **Feb 17 (Launch):** VibeLabs (Hashed) Submission.
+
+---
+
+## 👥 Contributors
+- **Founder:** [Lotus](https://github.com/Lolololotus) - Strategy, Storytelling, Vibe Coding
+- **Technical Lead:** [Anti-gravity Team Lead] - System Architecture, Full-stack Dev
+- **AI Partner:** Jimini (Gemini)
+
