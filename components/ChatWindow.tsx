@@ -65,6 +65,28 @@ export default function ChatWindow({
         scrollToBottom();
     }, [messages]);
 
+    // Removal Logic - Phase 5.6
+    const handleRemoveObject = (index: number, objectName: string) => {
+        // Succinct feedback from Jimini
+        const removalResponses = [
+            "조각을 거두어냅니다. 다시 어떤 빛을 찾으시겠습니까?",
+            "파편이 흩어졌습니다. 새로운 상징을 기다립니다.",
+            "선택을 철회합니다. 다른 조각을 들려주시겠습니까?"
+        ];
+        const randomResponse = removalResponses[Math.floor(Math.random() * removalResponses.length)];
+
+        // Update collected elements
+        setCollectedElements(prev => ({
+            ...prev,
+            objects: prev.objects.filter((_, i) => i !== index)
+        }));
+
+        // Add Jimini's succinct response
+        addMessage("ai", randomResponse);
+
+        // Visual feedback/Sound simulation could be added here
+    };
+
     // Transition Logic - Manual Trigger via Button
     const handleEnterWorkshop = () => {
         if (!isTransitioning) {
@@ -222,7 +244,10 @@ export default function ChatWindow({
             if (!response.ok || data.error) throw new Error(data.error);
 
             if (data.role === 'ai') {
-                setNarrativeContent(data.content);
+                const content = data.content;
+                // Strip JSON if present to prevent it from showing in the Narrative UI
+                const cleanContent = content.replace(/```json\n[\s\S]*?\n```/, "").trim();
+                setNarrativeContent(cleanContent);
                 // Narrative Mode Set
             }
         } catch (error) {
@@ -416,6 +441,36 @@ export default function ChatWindow({
                 {/* Bottom: Input Area (approx 20%) */}
                 {step === "chat" && (
                     <div className="h-[20%] min-h-[100px] p-6 flex flex-col justify-center bg-gradient-to-t from-black via-black/90 to-transparent z-20">
+                        {/* Object Fragments (Shards) - Phase 5.6 */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            <AnimatePresence mode="popLayout">
+                                {collectedElements.objects.map((obj, i) => (
+                                    <motion.div
+                                        key={`${obj}-${i}`}
+                                        initial={{ opacity: 0, scale: 0.8, x: -10 }}
+                                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                                        exit={{
+                                            opacity: 0,
+                                            scale: 1.5,
+                                            filter: "blur(8px)",
+                                            transition: { duration: 0.3 }
+                                        }}
+                                        className="group relative flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md cursor-default hover:bg-white/10 transition-colors"
+                                    >
+                                        <div className="w-1.5 h-1.5 bg-amber-400 rotate-45 group-hover:animate-pulse" />
+                                        <span className="text-[11px] text-amber-100/70 font-serif tracking-wider">{obj}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveObject(i, obj)}
+                                            className="ml-1 text-white/20 hover:text-amber-500 transition-colors"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        </div>
+
                         <form onSubmit={handleSendMessage} className="w-full relative">
                             <input
                                 ref={inputRef}
@@ -496,7 +551,7 @@ export default function ChatWindow({
                                     animate={{ opacity: 1 }}
                                     className="relative w-full h-full flex flex-col"
                                 >
-                                    {/* Top: Fixed Header (Card Name) - Minimal & Elegant */}
+                                    {/* Top: Fixed Header (Card Name) - Minimal & Elegant with Breathing */}
                                     <div className="absolute top-0 left-0 w-full pt-12 text-center z-20">
                                         <motion.div
                                             initial={{ opacity: 0, y: -20 }}
@@ -504,7 +559,13 @@ export default function ChatWindow({
                                             transition={{ delay: 0.5, duration: 1 }}
                                             className="flex flex-col items-center gap-2"
                                         >
-                                            <span className="text-amber-500 text-xs tracking-[0.3em] uppercase opacity-70">Arcana No.{tarotCard?.id}</span>
+                                            <motion.span
+                                                animate={{ opacity: [0.5, 1, 0.5] }}
+                                                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                                className="text-amber-500 text-xs tracking-[0.3em] uppercase"
+                                            >
+                                                Arcana No.{tarotCard?.id}
+                                            </motion.span>
                                             <h1 className="text-3xl md:text-4xl font-serif text-amber-100/90 tracking-[0.2em] font-light">
                                                 {tarotCard?.name} <span className="text-lg opacity-50 ml-2 font-normal">{tarotCard?.nameKr}</span>
                                             </h1>
@@ -513,16 +574,16 @@ export default function ChatWindow({
                                     </div>
 
                                     {/* Center/Bottom: Narrative Text (Scrim) */}
-                                    <div className="flex-1 flex flex-col items-center justify-center relative z-10 px-8 pt-24 text-center">
+                                    <div className="flex-1 flex flex-col items-center justify-start relative z-10 px-6 pt-36 text-center w-full"> {/* Align top to support scroll */}
 
-                                        <div className="min-h-[200px] flex items-center justify-center">
-                                            <p className="max-w-xl text-base md:text-lg font-serif text-amber-100 leading-[1.8] text-center drop-shadow-lg whitespace-pre-wrap">
+                                        <div className="relative w-full max-w-xl">
+                                            <p className="text-sm md:text-base font-serif text-amber-100 leading-[1.8] text-center drop-shadow-lg whitespace-pre-wrap pb-6">
                                                 {displayedText}
                                                 {!isComplete && <span className="animate-pulse ml-1 text-amber-500">|</span>}
                                             </p>
                                         </div>
 
-                                        {/* Enter Workshop Button - Appears after text completion */}
+                                        {/* Enter Workshop Button - Fixed alignment below text area */}
                                         <AnimatePresence>
                                             {isComplete && (
                                                 <motion.button
@@ -531,7 +592,7 @@ export default function ChatWindow({
                                                     exit={{ opacity: 0, y: 10 }}
                                                     transition={{ delay: 0.5, duration: 1 }}
                                                     onClick={handleEnterWorkshop}
-                                                    className="mt-12 group flex items-center gap-3 px-8 py-3 rounded-full border border-amber-500/30 bg-black/20 hover:bg-amber-900/20 backdrop-blur-sm transition-all duration-300 hover:border-amber-400/60"
+                                                    className="mt-8 group flex items-center gap-3 px-8 py-3 rounded-full border border-amber-500/30 bg-black/40 hover:bg-amber-900/40 backdrop-blur-sm transition-all duration-300 hover:border-amber-400/60 z-30 shadow-lg"
                                                 >
                                                     <span className="text-amber-200/80 font-serif tracking-widest text-sm group-hover:text-amber-100 transition-colors">
                                                         나만의 조각 채우기

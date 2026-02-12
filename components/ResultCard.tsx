@@ -108,18 +108,21 @@ export default function ResultCard({ card, userName, onReveal, onDismiss }: Resu
                         <motion.div variants={itemVariants} className="relative w-48 h-48">
                             <div className="absolute inset-0 bg-amber-500/20 blur-3xl rounded-full animate-pulse-slow" />
                             {/* Fallback to Icon if image load fails or is missing (handled via error boundary or check, but here we assume img) */}
+                            {/* Fallback to Icon if image load fails or is missing */}
                             <img
-                                src="/stained_glass_heart_prism.png"
-                                alt="Stained Glass Heart"
+                                src={`/cards/${card.id}.png`}
+                                alt={`${card.name} Card`}
                                 className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(251,191,36,0.6)] relative z-10 transition-opacity duration-300"
                                 onError={(e) => {
                                     e.currentTarget.style.display = 'none';
                                     e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
-                                    e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.add('block');
+                                    e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.add('flex');
                                 }}
                             />
                             {/* Fallback Icon (Hidden by default, shown via CSS if img fails) */}
-                            <Heart className="hidden fallback-icon:block w-32 h-32 text-amber-500/50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                            <div className="hidden fallback-icon:flex items-center justify-center absolute inset-0 z-0">
+                                {getCardIcon(card.id)}
+                            </div>
                         </motion.div>
 
                         {/* 2. Card Name */}
