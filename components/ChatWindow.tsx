@@ -32,6 +32,7 @@ export default function ChatWindow({
     const [tarotCard, setTarotCard] = useState<ArcanaCard | null>(null);
     const [showResultCard, setShowResultCard] = useState(false);
     const [moodColor, setMoodColor] = useState("from-gray-900 via-purple-900 to-black");
+    const [collectedElements, setCollectedElements] = useState<{ objects: string[], colors: string[] }>({ objects: [], colors: [] }); // Phase 4.6 State
 
     // Audio Hook
     const { isMuted, toggleMute, playReveal, playAmbient } = useSound();
@@ -148,16 +149,35 @@ export default function ChatWindow({
                     const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
 
                     if (jsonMatch) {
-                        const retrievalData = JSON.parse(jsonMatch[1]);
-                        const cleanContent = content.replace(/```json\n[\s\S]*?\n```/, "").trim();
-                        addMessage("ai", cleanContent);
+                        try {
+                            const parsedData = JSON.parse(jsonMatch[1]);
+                            const cleanContent = content.replace(/```json\n([\s\S]*?)\n```/);
+                            addMessage("ai", cleanContent);
 
-                        if (cleanContent.includes("스며듭니다") || cleanContent.includes("채워")) {
-                            setFillingStep(prev => Math.min(prev + 1, 3));
-                        }
+                            // Phase 4.6: Progressive State Update
+                            if (parsedData.current_objects || parsedData.current_colors) {
+                                setCollectedElements({
+                                    objects: parsedData.current_objects || [],
+                                    colors: parsedData.current_colors || []
+                                });
+                            }
 
-                        if (retrievalData.objects && (retrievalData.colors || retrievalData.primary_color)) {
-                            generateStainedGlass(retrievalData);
+                            if (cleanContent.includes("스며듭니다") || cleanContent.includes("채워")) {
+                                setFillingStep(prev => Math.min(prev + 1, 3));
+                            }
+
+                            // Trigger Generation only if complete
+                            if (parsedData.is_complete) {
+                                const generationData = {
+                                    ...parsedData,
+                                    objects: parsedData.current_objects || parsedData.objects,
+                                    colors: parsedData.current_colors || parsedData.colors
+                                };
+                                generateStainedGlass(generationData);
+                            }
+                        } catch (e) {
+                            console.error("JSON Parse Error", e);
+                            addMessage("ai", content);
                         }
                     } else {
                         addMessage("ai", content);
@@ -304,11 +324,41 @@ export default function ChatWindow({
                             <motion.div
                                 layoutId="tarot-card-anchor"
                                 className={cn(
-                                    "relative w-10 h-14 rounded overflow-hidden border border-amber-500/50 shadow-[0_0_15px_rgba(251,191,36,0.3)] bg-gradient-to-br from-purple-900 to-black transition-all duration-300",
-                                    input.length > 0 && "shadow-[0_0_20px_rgba(251,191,36,0.6)] border-amber-400" // Typing feedback
+                                    "relative w-10 h-14 rounded overflow-hidden border border-amber-500/50 transition-all duration-500",
+                                    // Base Glow
+                                    "shadow-[0_0_15px_rgba(251,191,36,0.3)]",
+                                    // Phase 4.6: Object Activation (Gold Glow Intensity)
+                                    collectedElements.objects.length === 1 && "shadow-[0_0_25px_rgba(251,191,36,0.6)] border-amber-400",
+                                    collectedElements.objects.length === 2 && "shadow-[0_0_35px_rgba(251,191,36,0.8)] border-amber-300 ring-1 ring-amber-300",
+                                    collectedElements.objects.length >= 3 && "shadow-[0_0_50px_rgba(251,191,36,1)] border-white ring-2 ring-white/50"
                                 )}
                             >
-                                <span className="absolute inset-0 flex items-center justify-center text-[10px] text-amber-200 font-bold">{tarotCard.id}</span>
+                                {/* Phase 4.6: Color Infusion (Overlay) */}
+                                <div
+                                    className="absolute inset-0 z-0 transition-colors duration-1000"
+                                    style={{
+                                        background: collectedElements.colors.length > 0
+                                            ? `linear-gradient(to bottom right, ${collectedElements.colors[0]}, ${collectedElements.colors[1] || 'transparent'})`
+                                            : 'linear-gradient(to bottom right, #4c1d95, #000000)',
+                                        opacity: 0.8
+                                    }}
+                                />
+                                {/* Particles for Objects */}
+                                {collectedElements.objects.map((_, i) => (
+                                    <motion.div
+                                        key={i}
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                                        transition={{ duration: 2, repeat: Infinity, delay: i * 0.5 }}
+                                        className="absolute w-2 h-2 bg-amber-200 rounded-full blur-[1px] z-10"
+                                        style={{
+                                            top: `${20 + (i * 25)}%`,
+                                            left: `${20 + (i * 20)}%`
+                                        }}
+                                    />
+                                ))}
+
+                                <span className="absolute inset-0 flex items-center justify-center text-[10px] text-amber-200 font-bold z-20 mix-blend-overlay">{tarotCard.id}</span>
                             </motion.div>
                         ) : (
                             // Placeholder anchor
