@@ -72,6 +72,7 @@ export default function ChatWindow({
             setTimeout(() => {
                 setStep("chat");
                 setRitualStep("complete");
+                setMessages([]); // Clear history for a fresh start
 
                 // Trigger Jimini's First Inquiry
                 setTimeout(() => {
