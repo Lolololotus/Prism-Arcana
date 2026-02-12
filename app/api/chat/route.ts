@@ -3,13 +3,19 @@ import { NextResponse } from "next/server";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-export const runtime = "edge";
+// export const runtime = "edge"; // Switch to Node.js runtime for better compatibility
 
 export async function POST(req: Request) {
   try {
+    if (!process.env.GEMINI_API_KEY) {
+      console.error("API Key is missing in environment variables");
+      throw new Error("API Key is missing on server");
+    }
+
     const { messages, tarotContext, userName = "Lotus" } = await req.json();
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Use 'gemini-flash-latest' as it has proven stable quota for this key
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     // Refined System Prompt
     const systemPrompt = `
@@ -80,7 +86,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("Error generating content:", error);
     return NextResponse.json(
-      { error: "Failed to generate response" },
+      { error: `Failed to generate response: ${error instanceof Error ? error.message : String(error)}` },
       { status: 500 }
     );
   }

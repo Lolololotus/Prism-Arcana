@@ -17,7 +17,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Prism Arcana",
-  description: "사유를 빛의 예술로 형상화하다",
+  description: "우주의 숫자를 빛의 숨결로 빚어내는 나만의 인생 카드",
 };
 
 export default function RootLayout({

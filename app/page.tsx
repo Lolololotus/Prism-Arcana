@@ -1,24 +1,40 @@
+"use client";
+
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import ChatWindow from "@/components/ChatWindow";
+import TitleScreen from "@/components/TitleScreen";
+import StarryBackground from "@/components/StarryBackground";
 
 export default function Home() {
+  const [showTitleScreen, setShowTitleScreen] = useState(true);
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 text-white">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        {/* Header/Logo placeholder if needed */}
-      </div>
-
-      <div className="relative z-10 w-full flex flex-col items-center gap-8">
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600 tracking-tighter">
-            Prism Arcana
-          </h1>
-          <p className="text-gray-400 text-sm md:text-base max-w-md mx-auto">
-            사유를 빛의 예술로 형상화하다
-          </p>
-        </div>
-
-        <ChatWindow />
-      </div>
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 text-white overflow-hidden relative">
+      <StarryBackground />
+      <AnimatePresence mode="wait">
+        {showTitleScreen ? (
+          <motion.div
+            key="title"
+            className="fixed inset-0 z-50"
+            exit={{ opacity: 0, filter: "blur(10px)", transition: { duration: 1 } }}
+          >
+            <TitleScreen onStart={() => setShowTitleScreen(false)} />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="chat"
+            className="w-full h-full flex flex-col items-center justify-center"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, ease: "easeOut" }}
+          >
+            <div className="relative z-10 w-full flex flex-col items-center gap-8">
+              <ChatWindow />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
