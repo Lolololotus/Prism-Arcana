@@ -47,6 +47,23 @@ export default function ResultCard({ card, userName, onReveal, onDismiss }: Resu
         }
     };
 
+    // Variantes for Staggered Animation
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.5,
+                delayChildren: 0.3
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             {/* Backdrop with Blur */}
@@ -54,75 +71,85 @@ export default function ResultCard({ card, userName, onReveal, onDismiss }: Resu
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                className="absolute inset-0 bg-black/90 backdrop-blur-xl"
                 onClick={onDismiss}
             />
 
             {/* Main Card Container with 3D Flip Effect */}
             <motion.div
-                initial={{ scale: 0, opacity: 0, rotateY: 180 }}
+                initial={{ scale: 0.8, opacity: 0, rotateY: 180 }}
                 animate={{ scale: 1, opacity: 1, rotateY: 0 }}
-                exit={{ scale: 0.8, opacity: 0, y: -50 }}
+                exit={{ y: -100, opacity: 0, transition: { duration: 0.8 } }}
                 transition={{
                     type: "spring",
-                    stiffness: 100,
+                    stiffness: 60,
                     damping: 20,
                     duration: 1.5
                 }}
-                className="relative z-10 w-full max-w-sm aspect-[2/3] perspective-1000 group"
+                className="relative z-10 w-full max-w-sm aspect-[2/3] perspective-1000 group cursor-pointer"
+                onClick={onDismiss}
             >
                 {/* Gold/Hologram Glow Behind - Intensified */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-amber-400 via-orange-300 to-white opacity-40 blur-3xl rounded-full scale-125 animate-pulse-slow mix-blend-screen" />
-                <div className="absolute inset-0 bg-[conic-gradient(from_90deg_at_50%_50%,#000000_0%,#a855f7_50%,#fbbf24_100%)] mix-blend-color-dodge opacity-50 blur-2xl animate-spin-slow" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/30 via-purple-500/20 to-transparent blur-3xl rounded-full scale-110 animate-pulse-slow" />
 
-                {/* The Card Itself - High Contrast Border */}
-                <div className="w-full h-full relative rounded-2xl overflow-hidden border-2 border-amber-400/80 shadow-[0_0_80px_rgba(251,191,36,0.4)] bg-black/95 flex flex-col items-center text-center p-6">
+                {/* The Card Itself */}
+                <div className="w-full h-full relative rounded-2xl overflow-hidden border border-amber-500/50 shadow-[0_0_50px_rgba(251,191,36,0.2)] bg-black/80 flex flex-col items-center text-center p-8 backdrop-blur-md">
                     {/* Decorative Frame */}
-                    <div className="absolute inset-2 border border-white/10 rounded-xl pointer-events-none" />
+                    <div className="absolute inset-3 border border-white/5 rounded-xl pointer-events-none" />
 
-                    {/* Card Content */}
+                    {/* Card Content with Staggered Animation */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.8 }}
-                        className="flex flex-col items-center h-full justify-between py-4"
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="flex flex-col items-center h-full justify-center gap-8 py-4"
                     >
-                        <div className="space-y-2">
-                            <h3 className="text-amber-200 font-serif text-sm tracking-widest uppercase">The Destined Light</h3>
-                            <h2 className="text-3xl font-bold text-white font-serif">{card.id}. {card.name}</h2>
-                            <p className="text-purple-300 font-serif text-lg">{card.nameKr}</p>
-                        </div>
+                        {/* 1. Stained Glass Heart Symbol */}
+                        <motion.div variants={itemVariants} className="relative w-48 h-48">
+                            <div className="absolute inset-0 bg-amber-500/20 blur-3xl rounded-full animate-pulse-slow" />
+                            {/* Fallback to Icon if image load fails or is missing (handled via error boundary or check, but here we assume img) */}
+                            <img
+                                src="/stained_glass_heart_prism.png"
+                                alt="Stained Glass Heart"
+                                className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(251,191,36,0.6)] relative z-10"
+                                onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    e.currentTarget.parentElement!.classList.add('fallback-icon');
+                                }}
+                            />
+                            {/* Fallback Icon (Hidden by default, shown via CSS if img fails) */}
+                            <Heart className="hidden fallback-icon:block w-32 h-32 text-amber-500/50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                        </motion.div>
 
-                        {/* Dynamic Card Icon */}
-                        <div className="flex-1 w-full flex items-center justify-center my-4">
-                            <div className="w-32 h-32 rounded-full border-2 border-amber-500/30 flex items-center justify-center relative bg-gradient-to-b from-indigo-900 to-black">
-                                {getCardIcon(card.id)}
-                                <div className="absolute inset-0 rounded-full border border-white/20 animate-ping-slow" />
-                            </div>
-                        </div>
+                        {/* 2. Card Name */}
+                        <motion.div variants={itemVariants} className="space-y-2 relative z-20">
+                            <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-amber-100 to-amber-400 font-serif drop-shadow-glow tracking-wider">
+                                {card.id}. {card.name}
+                            </h2>
+                            <p className="text-amber-200/60 font-serif text-lg tracking-widest uppercase">{card.nameKr}</p>
+                        </motion.div>
 
-                        <div className="space-y-4">
-                            <p className="text-sm text-gray-300 leading-relaxed font-light">
-                                <span className="text-amber-200 font-bold">{userName}</span> 님만을 위해 준비된, 눈부신 '{card.nameKr}' 카드가 도착했습니다.
-                                <br />
-                                이 빛의 조각들이 당신에게 어떤 이야기를 건네고 있나요?
-                            </p>
-
-                            <div className="flex flex-wrap gap-2 justify-center">
-                                {card.keywords.map(kw => (
-                                    <span key={kw} className="px-3 py-1 text-xs rounded-full bg-amber-900/20 text-amber-200 border border-amber-700/30">
-                                        #{kw}
+                        {/* 3. Keywords & Mintimal Divider */}
+                        <motion.div variants={itemVariants} className="space-y-6">
+                            <div className="w-8 h-[1px] bg-amber-500/50 mx-auto" />
+                            <div className="flex flex-wrap gap-3 justify-center">
+                                {card.keywords.slice(0, 3).map(kw => ( // Limit to 3 for minimalism
+                                    <span key={kw} className="text-sm text-purple-200/80 font-serif tracking-wide">
+                                        {kw}
                                     </span>
                                 ))}
                             </div>
-                        </div>
+                        </motion.div>
 
-                        <button
-                            onClick={onDismiss}
-                            className="mt-6 px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/30 rounded-full text-white text-sm transition-all"
+                        {/* Touch Hint */}
+                        <motion.div
+                            variants={itemVariants}
+                            className="absolute bottom-8 left-0 w-full text-center"
                         >
-                            이야기 시작하기
-                        </button>
+                            <p className="text-[10px] text-amber-500/40 animate-pulse tracking-[0.2em] uppercase">
+                                Touch to listen
+                            </p>
+                        </motion.div>
                     </motion.div>
                 </div>
             </motion.div>

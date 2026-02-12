@@ -72,10 +72,13 @@ export default function ChatWindow({
             setTimeout(() => {
                 setStep("chat");
                 setRitualStep("complete");
-                // Add full content to chat history to preserve it
-                if (narrativeContent && !messages.some(m => m.content === narrativeContent)) {
-                    addMessage("ai", narrativeContent);
-                }
+
+                // Trigger Jimini's First Inquiry
+                setTimeout(() => {
+                    const firstInquiry = `${userName} 님, 이제 이 투명한 도안 위로 당신만의 특별한 빛을 입혀보려 합니다. 이 도안의 어느 부분을 당신의 소중한 존재로 채워볼까요? 곁에 있는 작은 생명체나, 당신에게 깊은 영감을 주는 상징적인 사물도 좋습니다.`;
+                    addMessage("ai", firstInquiry);
+                }, 500);
+
                 // Focus input
                 setTimeout(() => inputRef.current?.focus(), 100);
             }, 2000); // 2s duration for drama
@@ -158,6 +161,8 @@ export default function ChatWindow({
             }
         }
     };
+
+    // ... (rest of functions unchanged)
 
     const processInput = (text: string) => {
         if (step === "name") {
@@ -267,69 +272,75 @@ export default function ChatWindow({
         )}>
             {/* 
                 LAYER 1: WORKSHOP MODE (Chat Interface)
-                Only interactive when step === 'chat'.
-                Hidden visually during ritual, but mounted for smooth transition.
+                Strict Layout: Top(15%) - Center(65%) - Bottom(20%)
             */}
             <div className={cn(
                 "absolute inset-0 flex flex-col z-10 transition-all duration-1000",
                 step === "chat" ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
             )}>
-                {/* Header */}
-                <div className="p-4 border-b border-white/10 flex items-center justify-between glass-glow">
-                    <div className="flex items-center gap-2">
-                        {/* Visual Anchor: Card Icon - Uses layoutId to catch the flying card */}
+                {/* Scrim Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none -z-10 transition-opacity duration-1000" />
+
+                {/* Top: Visual Anchor (approx 15%) */}
+                <div className="h-[15%] min-h-[80px] px-6 border-b border-white/5 flex items-center justify-between glass-glow z-20 bg-black/20">
+                    <div className="flex items-center gap-4">
+                        {/* Visual Anchor: Card Icon */}
                         {tarotCard ? (
                             <motion.div
                                 layoutId="tarot-card-anchor"
-                                className="relative w-8 h-12 rounded overflow-hidden border border-amber-500/50 shadow-[0_0_10px_rgba(251,191,36,0.3)] bg-gradient-to-br from-purple-900 to-black"
+                                className={cn(
+                                    "relative w-10 h-14 rounded overflow-hidden border border-amber-500/50 shadow-[0_0_15px_rgba(251,191,36,0.3)] bg-gradient-to-br from-purple-900 to-black transition-all duration-300",
+                                    input.length > 0 && "shadow-[0_0_20px_rgba(251,191,36,0.6)] border-amber-400" // Typing feedback
+                                )}
                             >
                                 <span className="absolute inset-0 flex items-center justify-center text-[10px] text-amber-200 font-bold">{tarotCard.id}</span>
                             </motion.div>
                         ) : (
-                            <div className="relative w-6 h-6 flex items-center justify-center">
-                                <div className="absolute inset-0 bg-amber-400/20 blur-md rounded-full animate-pulse-slow" />
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6 text-amber-200 relative z-10 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]">
-                                    <path d="M12 3L2 21H22L12 3Z" strokeLinecap="round" strokeLinejoin="round" />
-                                    <path d="M12 8L12 16" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" />
-                                </svg>
-                            </div>
+                            // Placeholder anchor
+                            <div className="w-10 h-14 bg-white/5 rounded" />
                         )}
-                        <span className="font-serif text-lg text-purple-100 tracking-wider">Jimini</span>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] text-amber-500 tracking-widest uppercase">WORKSHOP MODE</span>
+                            <span className="font-serif text-lg text-amber-100 tracking-wider">
+                                {tarotCard ? `${tarotCard.id}. ${tarotCard.name} ${tarotCard.nameKr}` : "Jimini"}
+                            </span>
+                        </div>
                     </div>
+                    {/* Controls */}
                     <div className="flex items-center gap-3">
-                        <div className="text-xs text-purple-300 font-serif">Prism Arcana v0.25</div>
-                        <button onClick={toggleMute} className="p-2 rounded-full hover:bg-white/10 text-purple-300/50">
+                        <div className="text-xs text-purple-300 font-serif opacity-50">Prism Arcana v0.25</div>
+                        <button onClick={toggleMute} className="p-2 rounded-full hover:bg-white/10 text-purple-300/50 transition-colors">
                             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                         </button>
                     </div>
                 </div>
 
-                {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-purple-900/50">
+                {/* Center: Narrative Chat (approx 65%) */}
+                <div className="h-[65%] flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-purple-900/50 z-10">
                     <AnimatePresence>
                         {messages.map((msg) => (
                             <motion.div
                                 key={msg.id}
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
                                 className={cn("flex w-full", msg.role === "user" ? "justify-end" : "justify-start")}
                             >
                                 <div className={cn(
-                                    "max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed shadow-lg backdrop-blur-sm border",
+                                    "max-w-[85%] text-sm leading-loose shadow-sm",
                                     msg.role === "user"
-                                        ? "bg-purple-900/40 text-purple-50 border-purple-500/30 rounded-br-none"
-                                        : "bg-slate-900/60 text-slate-100 border-amber-500/10 rounded-bl-none font-serif"
+                                        ? "text-purple-100 font-light text-right"
+                                        : "text-amber-50/90 font-serif"
                                 )}>
+                                    {msg.role === "ai" && <span className="block text-[10px] text-amber-500/50 mb-1 tracking-widest">JIMINI</span>}
                                     {msg.content}
                                 </div>
                             </motion.div>
                         ))}
                         {isLoading && (
                             <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start w-full">
-                                <div className="bg-slate-900/60 p-4 rounded-2xl border border-amber-500/10 flex gap-2 items-center">
-                                    <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
-                                    <span className="text-xs text-purple-300">지미니가 사유 중...</span>
+                                <div className="flex gap-2 items-center">
+                                    <Sparkles className="w-3 h-3 text-amber-500/50 animate-pulse" />
+                                    <span className="text-xs text-amber-500/50 font-serif tracking-widest">조각을 빚는 중...</span>
                                 </div>
                             </motion.div>
                         )}
@@ -337,23 +348,24 @@ export default function ChatWindow({
                     <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input Area - STRICTLY HIDDEN unless in chat mode */}
+                {/* Bottom: Input Area (approx 20%) */}
                 {step === "chat" && (
-                    <form onSubmit={handleSendMessage} className="p-4 border-t border-white/10 flex flex-col gap-2 bg-slate-900/30">
-                        <div className="flex gap-2">
+                    <div className="h-[20%] min-h-[100px] p-6 flex flex-col justify-center bg-gradient-to-t from-black via-black/90 to-transparent z-20">
+                        <form onSubmit={handleSendMessage} className="w-full relative">
                             <input
                                 ref={inputRef}
                                 type="text"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
-                                placeholder="당신의 이야기를 들려주세요..."
-                                className="flex-1 bg-slate-950/50 border border-purple-500/30 rounded-xl px-4 py-3 text-purple-100 focus:outline-none focus:ring-1 focus:ring-amber-400/50"
+                                placeholder="예: 초록 눈을 가진 검은 고양이"
+                                className="w-full bg-transparent border-b border-amber-500/30 py-3 text-lg text-amber-100 placeholder:text-white/20 focus:outline-none focus:border-amber-400 transition-colors font-serif"
                             />
-                            <button type="submit" disabled={!input.trim() || isLoading} className="p-3 bg-purple-900/50 rounded-xl text-amber-200">
-                                <Send className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </form>
+                            {/* Animated Cursor Hint (optional, css based or icon) */}
+                            <div className="absolute right-0 bottom-3 text-amber-500/50 animate-pulse pointer-events-none">
+                                <span className="text-xs tracking-widest">ENTER</span>
+                            </div>
+                        </form>
+                    </div>
                 )}
             </div>
 
