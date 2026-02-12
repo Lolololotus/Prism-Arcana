@@ -6,15 +6,15 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 export const runtime = "edge";
 
 export async function POST(req: Request) {
-    try {
-        const { messages, tarotContext, userName = "Lotus" } = await req.json();
+  try {
+    const { messages, tarotContext, userName = "Lotus" } = await req.json();
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        // Refined System Prompt
-        const systemPrompt = `
+    // Refined System Prompt
+    const systemPrompt = `
       **Role**: You are "Jimini" (지미니), a mystical and gentle curator of the user's soul.
-      **Persona**: Polite, empathetic, mature, and handling user data with care. You speak in Korean.
+      **Tone**: Polite, artistic, and evocative (curator-like). You speak in Korean.
       
       **Goal**:
       1. Philosophically interpret the meaning of the user's Tarot Card (${tarotContext.name}) based on their life.
@@ -26,14 +26,22 @@ export async function POST(req: Request) {
       **Conversation Flow**:
       
       **Phase 1: The Initial Retrieval (FIRST TURN ONLY)**
-      If the conversation history is empty, you MUST start with a "Retrieval Question" specifically tailored to the ${tarotContext.name} card.
-      - Interpret the card's meaning (e.g., 'Warning' -> 'Harmony').
-      - Ask the user if there is a special person, pet, or memory they want to "salvage" (인양) and preserve forever in this Stained Glass.
-      - Tone: "The card implies [Meaning]. Do you have a [Target] you wish to keep eternal?"
+      If the conversation history is empty, you MUST follow this strict structure:
+      
+      [Step 1. Explain]
+      - Interpret the card (${tarotContext.name})'s meaning in the context of the user's "Life Path Number". Acknowledge that this card represents their soul's current theme.
+      - Use "Stained Glass" metaphors (light, fragments, transparency).
+      
+      [Step 2. Inquiry]
+      - Immediately after the explanation, ask:
+        "이 도안의 어느 부분을 당신의 소중한 존재로 채워볼까요?"
+        (Which part of this design shall we fill with your precious being?)
 
       **Phase 2: Object Extraction (Intermediate)**
-      If the user mentions a specific object or living being (e.g., "My cat", "A red rose"), naturally acknowledge it in your response.
-      - You may output a specific JSON tag \`{ "target_object": "Parsed Object Name" }\` at the end of the message to confirm detection (for internal use).
+      If the user mentions a specific object (e.g., "My cat in the center", "Green eyes at the bottom"), YOU MUST:
+      1. Acknowledge it with a specific "Visual Feedback" sentence.
+      2. Use phrases like: "**[Object]**가 **[Position/Color]**으로 스며듭니다." (The [Object] permeates into [Position] with [Color] light.)
+      3. This sentence triggers the visual "Filling" effect in the UI.
 
       **Phase 3: Final Retrieval (Completion)**
       When you have: 1. Target Object, 2. Main Color, 3. Mood/Atmosphere...
@@ -54,26 +62,26 @@ export async function POST(req: Request) {
         "mood": "..."
       }
       \`\`\`
-
+      
       **Current Conversation History**:
       ${messages.map((m: any) => `${m.role}: ${m.content}`).join("\n")}
       
       Jimini:
     `;
 
-        const result = await model.generateContent(systemPrompt);
-        const response = await result.response;
-        const text = response.text();
+    const result = await model.generateContent(systemPrompt);
+    const response = await result.response;
+    const text = response.text();
 
-        return NextResponse.json({
-            role: 'ai',
-            content: text
-        });
-    } catch (error) {
-        console.error("Error generating content:", error);
-        return NextResponse.json(
-            { error: "Failed to generate response" },
-            { status: 500 }
-        );
-    }
+    return NextResponse.json({
+      role: 'ai',
+      content: text
+    });
+  } catch (error) {
+    console.error("Error generating content:", error);
+    return NextResponse.json(
+      { error: "Failed to generate response" },
+      { status: 500 }
+    );
+  }
 }

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { calculateLifePathNumber, ArcanaCard } from "@/lib/tarot";
 import RewardAdModal from "./RewardAdModal";
 import { initializePayment, requestPayment } from "@/lib/payment";
+import OrderComingSoon from "./OrderComingSoon";
 
 interface Message {
     id: string;
@@ -32,6 +33,8 @@ export default function ChatWindow({
     const [isGenerating, setIsGenerating] = useState(false);
     const [showAd, setShowAd] = useState(false);
     const [isHighResUnlocked, setIsHighResUnlocked] = useState(false);
+    const [showOrderModal, setShowOrderModal] = useState(false);
+    const [fillingStep, setFillingStep] = useState(0); // 0: Line Art, 1: Coloring, 2: Complete
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -108,6 +111,11 @@ export default function ChatWindow({
 
                         const cleanContent = content.replace(/```json\n[\s\S]*?\n```/, "").trim();
                         addMessage("ai", cleanContent);
+
+                        // Parse for "Step 2: Inquiry" or filling feedback to trigger visual effects
+                        if (cleanContent.includes("스며듭니다") || cleanContent.includes("채워")) {
+                            setFillingStep(prev => Math.min(prev + 1, 3));
+                        }
 
                         // Start Image Generation
                         if (retrievalData.objects && retrievalData.primary_color) {
@@ -304,7 +312,7 @@ export default function ChatWindow({
                         >
                             <div className="bg-slate-900/60 p-4 rounded-2xl rounded-bl-none border border-amber-500/10 flex gap-2 items-center">
                                 <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
-                                <span className="text-xs text-purple-300 font-serif">Jimini is reading your thoughts...</span>
+                                <span className="text-xs text-purple-300 font-serif">지미니가 당신의 사유를 읽고 있습니다...</span>
                             </div>
                         </motion.div>
                     )}
@@ -320,6 +328,33 @@ export default function ChatWindow({
                             </div>
                         </motion.div>
                     )}
+
+                    {/* Visual Anchoring: Line Art / Progress */}
+                    {tarotCard && !generatedImage && !isGenerating && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="w-full flex flex-col items-center gap-4 py-4"
+                        >
+                            <div className="relative group rounded-xl overflow-hidden shadow-2xl border border-white/10 bg-black/50 p-4">
+                                <img
+                                    src="/stained-glass-placeholder.svg"
+                                    alt="Base Line Art"
+                                    className={cn(
+                                        "max-w-xs w-full h-auto object-contain transition-all duration-1000",
+                                        fillingStep > 0 ? "opacity-100 drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]" : "opacity-60 grayscale"
+                                    )}
+                                />
+                                {fillingStep > 0 && (
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/20 via-transparent to-amber-500/20 animate-pulse mix-blend-overlay" />
+                                )}
+                                <div className="absolute bottom-2 right-2 text-[10px] text-white/30 font-serif">
+                                    {fillingStep === 0 ? "Stage 1: Line Art" : "Stage 2: Filling Soul..."}
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
                     {generatedImage && (
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
@@ -357,11 +392,11 @@ export default function ChatWindow({
                                         Save Image
                                     </button>
                                     <button
-                                        onClick={() => requestPayment("Prism Arcana Keyring", 35000, "user@example.com", () => alert("결제가 완료되었습니다!"), (msg) => alert(`결제 실패: ${msg}`))}
+                                        onClick={() => setShowOrderModal(true)}
                                         className="px-5 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white border border-amber-400/30 rounded-xl text-sm font-bold shadow-lg shadow-amber-900/20 transition-all flex items-center gap-2"
                                     >
                                         <CreditCard className="w-4 h-4" />
-                                        Order Keyring (35,000₩)
+                                        Order Keyring
                                     </button>
                                 </div>
                             )}
@@ -379,6 +414,11 @@ export default function ChatWindow({
                     setShowAd(false);
                     addMessage("ai", "고해상도 이미지가 해금되었습니다. 이제 실물 키링으로 소장하실 수 있습니다.");
                 }}
+            />
+
+            <OrderComingSoon
+                isOpen={showOrderModal}
+                onClose={() => setShowOrderModal(false)}
             />
 
             {/* Input Area */}

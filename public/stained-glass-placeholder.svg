@@ -1,0 +1,49 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="512" height="512" fill="#1a1a1a"/>
+  
+  <!-- Outer Frame -->
+  <circle cx="256" cy="256" r="240" fill="none" stroke="#333" stroke-width="4"/>
+  <circle cx="256" cy="256" r="230" fill="none" stroke="#555" stroke-width="2"/>
+  
+  <!-- Central Mandala Structure (Line Art) -->
+  <g stroke="white" stroke-width="2" fill="none" opacity="0.5">
+    <!-- Center Core -->
+    <circle cx="256" cy="256" r="50" />
+    <circle cx="256" cy="256" r="20" />
+    
+    <!-- Radiating Lines -->
+    <line x1="256" y1="206" x2="256" y2="26" />
+    <line x1="256" y1="306" x2="256" y2="486" />
+    <line x1="206" y1="256" x2="26" y2="256" />
+    <line x1="306" y1="256" x2="486" y2="256" />
+    
+    <!-- Diagonals -->
+    <line x1="220" y1="220" x2="90" y2="90" />
+    <line x1="292" y1="220" x2="422" y2="90" />
+    <line x1="220" y1="292" x2="90" y2="422" />
+    <line x1="292" y1="292" x2="422" y2="422" />
+    
+    <!-- Inner Petal Shapes -->
+    <path d="M256 100 Q 300 200 256 206 Q 212 200 256 100" />
+    <path d="M256 412 Q 300 312 256 306 Q 212 312 256 412" />
+    <path d="M100 256 Q 200 212 206 256 Q 200 300 100 256" />
+    <path d="M412 256 Q 312 212 306 256 Q 312 300 412 256" />
+    
+    <!-- Connecting Arcs -->
+    <circle cx="256" cy="256" r="150" stroke-dasharray="10 5"/>
+  </g>
+  
+  <!-- Text Placeholder -->
+  <text x="50%" y="95%" font-family="serif" font-size="14" fill="#666" text-anchor="middle" letter-spacing="2">PRISM ARCANA BASE</text>
+</svg>
