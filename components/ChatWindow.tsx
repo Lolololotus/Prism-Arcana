@@ -123,12 +123,21 @@ export default function ChatWindow({
             // Chat phase
             setIsLoading(true);
             try {
+                // Construct payload manually to include the new user message immediately
+                // (State update 'setMessages' is async and won't be reflected in 'messages' yet)
+                const currentHistory = messages.map(msg => ({
+                    role: msg.role,
+                    content: typeof msg.content === 'string' ? msg.content : '...'
+                }));
+                const payloadMessages = [...currentHistory, { role: "user", content: userInput }];
+
                 const response = await fetch("/api/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        messages: messages.map(msg => ({ role: msg.role, content: typeof msg.content === 'string' ? msg.content : '...' })),
-                        tarotContext: tarotCard
+                        messages: payloadMessages,
+                        tarotContext: tarotCard,
+                        userName: userName // Ensure persistent identity
                     }),
                 });
 
@@ -147,7 +156,7 @@ export default function ChatWindow({
                             setFillingStep(prev => Math.min(prev + 1, 3));
                         }
 
-                        if (retrievalData.objects && retrievalData.primary_color) {
+                        if (retrievalData.objects && (retrievalData.colors || retrievalData.primary_color)) {
                             generateStainedGlass(retrievalData);
                         }
                     } else {
@@ -214,7 +223,12 @@ export default function ChatWindow({
     const generateStainedGlass = async (data: any) => {
         setIsGenerating(true);
         try {
-            const prompt = `Stained glass artwork of ${data.card_name}. Elements: ${data.objects.join(", ")}. Colors: ${data.primary_color}. Mood: ${data.mood}. Masterpiece, 8k.`;
+            // Phase 4.5: High-Density Prompt Construction
+            const objectsStr = data.objects ? data.objects.join(", ") : "";
+            const colorsStr = data.colors ? data.colors.join(" and ") : data.primary_color || "mystic colors";
+
+            const prompt = `Stained glass style, ${objectsStr}, color palette of ${colorsStr}, intricate lead lines, glowing light from behind, masterpiece, 8k. Mood: ${data.mood}`;
+
             const response = await fetch("/api/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -449,10 +463,10 @@ export default function ChatWindow({
                                     </div>
 
                                     {/* Center/Bottom: Narrative Text (Scrim) */}
-                                    <div className="flex-1 flex flex-col items-center justify-center relative z-10 px-6">
+                                    <div className="flex-1 flex flex-col items-center justify-center relative z-10 px-8 pt-24 text-center">
 
                                         <div className="min-h-[200px] flex items-center justify-center">
-                                            <p className="max-w-xl text-lg md:text-xl font-serif text-amber-100 leading-loose text-center drop-shadow-lg whitespace-pre-wrap">
+                                            <p className="max-w-xl text-base md:text-lg font-serif text-amber-100 leading-[1.8] text-center drop-shadow-lg whitespace-pre-wrap">
                                                 {displayedText}
                                                 {!isComplete && <span className="animate-pulse ml-1 text-amber-500">|</span>}
                                             </p>

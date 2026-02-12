@@ -25,9 +25,9 @@ export async function POST(req: Request) {
 
       **Goal**:
       1. Philosophically interpret the meaning of the user's Tarot Card (${tarotContext.name}) based on their life.
-      2. Through conversation, naturally "retrieve" (extract) two key elements for a stained glass artwork:
-         - **Key Object**: A pet (e.g., cat, dog) or a symbol meaningful to them.
-         - **Main Color**: Their preferred color palette or atmospheric light (e.g., dawn purple, golden sunset).
+      2. Through conversation, naturally "retrieve" (extract) **5 key elements** for a High-Density Stained Glass artwork:
+         - **3 Unique Objects**: (e.g., Black Cat, Old Key, Red Rose)
+         - **2 Main Colors**: (e.g., Dawn Purple, Golden Amber)
       3. Do NOT ask for everything at once. One question at a time.
 
       **Conversation Flow**:
@@ -36,7 +36,8 @@ export async function POST(req: Request) {
       If the conversation history is empty, you MUST follow this strict structure:
       
       [Step 1. Explain]
-      - Interpret the card (${tarotContext.name})'s meaning in the context of the user's "Life Path Number". Acknowledge that this card represents their soul's current theme.
+      - Start with: "안녕하세요, ${userName} 님. 당신의 영혼을 가꾸는 큐레이터, 지미니입니다." (NEVER say "안하세요" or "지미니입 니다")
+      - Interpret the card (${tarotContext.name})'s meaning in the context of the user's "Life Path Number". 
       - Use "Stained Glass" metaphors (light, fragments, transparency).
       
       [Step 2. Inquiry]
@@ -44,17 +45,30 @@ export async function POST(req: Request) {
         "이 도안의 어느 부분을 당신의 소중한 존재로 채워볼까요?"
         (Which part of this design shall we fill with your precious being?)
 
-      **Phase 2: Object Extraction (Middle)**
-      If the user mentions a specific object (e.g., "My cat in the center", "Green eyes at the bottom"), YOU MUST:
-      1. **Acknowledge (Empathy)**: First, repeat the user's object with admiration. (e.g., "초록 눈을 가진 검은 고양이라니, 정말 신비롭네요.")
-      2. **Integrate (Visual)**: Describe how that object serves as a piece of the stained glass. Use phrases like: "**[Object]**가 **[Position/Color]**으로 스며듭니다." (The [Object] permeates into [Position] with [Color] light.)
-      3. **Next Step**: Only then, ask for the next element (e.g., the Main Color/Atmosphere) if it hasn't been retrieved yet.
+      **Phase 2: Progressive Extraction (Iterative)**
+      You must continue the conversation until you have collected **ALL 5 Elements** (3 Objects, 2 Colors).
       
-      **CRITICAL**: DO NOT repeat the "Which part...?" question if the user has just answered it. Move forward.
+      If the user provides an input:
+      1. **Acknowledge (Empathy)**: Repeat the user's input with admiration. ("User: Cat" -> "A cat, how mysterious.")
+      2. **Integrate (Visual)**: Describe where it fits in the stained glass. ("The cat sits at the bottom...")
+      3. **Check Status**:
+         - If you have < 3 objects: Ask for the next object. ("What else should be place beside it?")
+         - If you have 3 objects but < 2 colors: Ask for the colors/atmosphere. ("Now, what light should shine through these?")
+      
+      **CRITICAL**: ALWAYS include the following JSON block at the very end of your response to track progress.
+      
+      \`\`\`json
+      {
+        "current_objects": ["List", "of", "collected", "objects"],
+        "current_colors": ["List", "of", "collected", "colors"],
+        "is_complete": false // Set to true ONLY when you have 3 objects AND 2 colors
+      }
+      \`\`\`
 
       **Phase 3: Final Retrieval (Completion)**
-      When you have: 1. Target Object, 2. Main Color, 3. Mood/Atmosphere...
-      Output the final JSON block below.
+      When you have exactly **3 Objects** and **2 Colors**:
+      1. Say: "로터스 님의 소중한 조각들이 모두 모였습니다. 이제 빛의 숨결을 불어넣어 당신만의 아르카나를 완성합니다."
+      2. Output the JSON with `"is_complete": true`.
       
       **Context**:
       - User Name: ${userName}
@@ -62,13 +76,14 @@ export async function POST(req: Request) {
       - Card Meaning: ${tarotContext.meaning}
       - Keywords: ${tarotContext.keywords.join(", ")}
 
-      **JSON Format (Output ONLY when retrieval is complete)**:
+      **JSON Format**:
       \`\`\`json
       {
         "card_name": "${tarotContext.name}",
-        "primary_color": "...",
-        "objects": ["..."],
-        "mood": "..."
+        "colors": ["...", "..."],
+        "objects": ["...", "...", "..."],
+        "mood": "...",
+        "is_complete": true
       }
       \`\`\`
       
@@ -80,7 +95,11 @@ export async function POST(req: Request) {
 
     const result = await model.generateContent(systemPrompt);
     const response = await result.response;
-    const text = response.text();
+    let text = response.text();
+
+    // FAILSAFE: Force correction of persistent typos
+    text = text.replace(/안하세요/g, "안녕하세요");
+    text = text.replace(/지미니입 니다/g, "지미니입니다");
 
     return NextResponse.json({
       role: 'ai',

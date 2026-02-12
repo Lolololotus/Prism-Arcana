@@ -111,10 +111,11 @@ export default function ResultCard({ card, userName, onReveal, onDismiss }: Resu
                             <img
                                 src="/stained_glass_heart_prism.png"
                                 alt="Stained Glass Heart"
-                                className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(251,191,36,0.6)] relative z-10"
+                                className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(251,191,36,0.6)] relative z-10 transition-opacity duration-300"
                                 onError={(e) => {
                                     e.currentTarget.style.display = 'none';
-                                    e.currentTarget.parentElement!.classList.add('fallback-icon');
+                                    e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
+                                    e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.add('block');
                                 }}
                             />
                             {/* Fallback Icon (Hidden by default, shown via CSS if img fails) */}
