@@ -72,3 +72,8 @@ body::before {
     box-shadow: 0 0 25px rgba(212, 175, 55, 0.3);
   }
 }
+
+.mask-gradient-bottom {
+  mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+}

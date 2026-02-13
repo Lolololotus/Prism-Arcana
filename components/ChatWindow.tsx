@@ -67,11 +67,11 @@ export default function ChatWindow({
 
     // Removal Logic - Phase 5.6
     const handleRemoveObject = (index: number, objectName: string) => {
-        // Succinct feedback from Jimini
+        // Succinct feedback from Jimini (Cool & Brief)
         const removalResponses = [
-            "조각을 거두어냅니다. 다시 어떤 빛을 찾으시겠습니까?",
-            "파편이 흩어졌습니다. 새로운 상징을 기다립니다.",
-            "선택을 철회합니다. 다른 조각을 들려주시겠습니까?"
+            "조각을 거두어냅니다.",
+            "파편이 흩어집니다.",
+            "선택을 철회합니다."
         ];
         const randomResponse = removalResponses[Math.floor(Math.random() * removalResponses.length)];
 
@@ -173,8 +173,12 @@ export default function ChatWindow({
                     if (jsonMatch) {
                         try {
                             const parsedData = JSON.parse(jsonMatch[1]);
-                            const cleanContent = content.replace(/```json\n([\s\S]*?)\n```/);
-                            addMessage("ai", cleanContent);
+                            const cleanContent = content.replace(/```json\n([\s\S]*?)\n```/, "").trim(); // Fix cleanContent regex to be robust
+
+                            // Clean up any remaining backticks or newlines at the end
+                            const displayContent = cleanContent.replace(/```$/, '').trim();
+
+                            addMessage("ai", displayContent);
 
                             // Phase 4.6: Progressive State Update
                             if (parsedData.current_objects || parsedData.current_colors) {
@@ -184,12 +188,12 @@ export default function ChatWindow({
                                 });
                             }
 
-                            if (cleanContent.includes("스며듭니다") || cleanContent.includes("채워")) {
-                                setFillingStep(prev => Math.min(prev + 1, 3));
-                            }
+                            // Interactive Filling Feedback based on count
+                            const totalItems = (parsedData.current_objects?.length || 0) + (parsedData.current_colors?.length || 0);
+                            setFillingStep(Math.min(totalItems, 5));
 
-                            // Trigger Generation only if complete
-                            if (parsedData.is_complete) {
+                            // Trigger Generation ONLY if explicitly complete and meets 5 items rule
+                            if (parsedData.is_complete && totalItems >= 5) {
                                 const generationData = {
                                     ...parsedData,
                                     objects: parsedData.current_objects || parsedData.objects,
@@ -199,7 +203,8 @@ export default function ChatWindow({
                             }
                         } catch (e) {
                             console.error("JSON Parse Error", e);
-                            addMessage("ai", content);
+                            // Fallback: just show content if JSON fails
+                            addMessage("ai", content.replace(/```json\n([\s\S]*?)\n```/, "").trim());
                         }
                     } else {
                         addMessage("ai", content);
@@ -295,7 +300,7 @@ export default function ChatWindow({
     // Animation Variants
     const fadeVariants = {
         hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeInOut" } },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.8 } },
         exit: { opacity: 0, y: -20, transition: { duration: 0.5 } }
     };
 
@@ -360,7 +365,7 @@ export default function ChatWindow({
                             >
                                 {/* Phase 4.6: Color Infusion (Overlay) */}
                                 <div
-                                    className="absolute inset-0 z-0 transition-colors duration-1000"
+                                    className="absolute inset-0 z-0 transition-colors duration-1000 mix-blend-overlay"
                                     style={{
                                         background: collectedElements.colors.length > 0
                                             ? `linear-gradient(to bottom right, ${collectedElements.colors[0]}, ${collectedElements.colors[1] || 'transparent'})`
@@ -472,6 +477,7 @@ export default function ChatWindow({
                         </div>
 
                         <form onSubmit={handleSendMessage} className="w-full relative">
+                            {/* Input Field: Physical "Deletion" Chip Area is likely above, ensuring visibility */}
                             <input
                                 ref={inputRef}
                                 type="text"
@@ -574,13 +580,15 @@ export default function ChatWindow({
                                     </div>
 
                                     {/* Center/Bottom: Narrative Text (Scrim) */}
-                                    <div className="flex-1 flex flex-col items-center justify-start relative z-10 px-6 pt-36 text-center w-full"> {/* Align top to support scroll */}
-
-                                        <div className="relative w-full max-w-xl">
-                                            <p className="text-sm md:text-base font-serif text-amber-100 leading-[1.8] text-center drop-shadow-lg whitespace-pre-wrap pb-6">
-                                                {displayedText}
-                                                {!isComplete && <span className="animate-pulse ml-1 text-amber-500">|</span>}
-                                            </p>
+                                    <div className="flex-1 flex flex-col items-center justify-start relative z-10 w-full overflow-hidden">
+                                        {/* Scrollable Container with Mask */}
+                                        <div className="w-full h-full overflow-y-auto pt-[50px] px-[30px] scrollbar-hide mask-gradient-bottom">
+                                            <div className="relative w-full max-w-xl mx-auto pb-20">
+                                                <p className="text-sm font-serif text-amber-100 leading-[1.8] text-center drop-shadow-lg whitespace-pre-wrap">
+                                                    {displayedText}
+                                                    {!isComplete && <span className="animate-pulse ml-1 text-amber-500">|</span>}
+                                                </p>
+                                            </div>
                                         </div>
 
                                         {/* Enter Workshop Button - Fixed alignment below text area */}
