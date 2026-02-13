@@ -8,6 +8,8 @@ import { useTypewriter } from "@/hooks/useTypewriter";
 import RewardAdModal from "./RewardAdModal";
 import OrderComingSoon from "./OrderComingSoon";
 import ResultCard from "./ResultCard";
+import ResultModal from "./ResultModal";
+import ParticleEffect from "./ParticleEffect";
 import { initializePayment, requestPayment } from "@/lib/payment";
 
 interface Message {
@@ -44,12 +46,21 @@ export default function ChatWindow({
     const [isTransitioning, setIsTransitioning] = useState(false);
 
     // Image Gens & Ads
+    // Image Gens & Ads & Modal
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [showAd, setShowAd] = useState(false);
+    const [showAd, setShowAd] = useState(false); // For image unlock (legacy)
     const [isHighResUnlocked, setIsHighResUnlocked] = useState(false);
     const [showOrderModal, setShowOrderModal] = useState(false);
     const [fillingStep, setFillingStep] = useState(0);
+    const [showResultModal, setShowResultModal] = useState(false); // Phase 6.1
+    const [loadingText, setLoadingText] = useState("빛의 농도를 조율 중입니다..."); // Phase 6.0
+
+    // 2026 Vision Flow
+    const [show2026Ad, setShow2026Ad] = useState(false);
+    const [adProgress, setAdProgress] = useState(0);
+    const [result2026Card, setResult2026Card] = useState<ArcanaCard | null>(null);
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -66,25 +77,21 @@ export default function ChatWindow({
     }, [messages]);
 
     // Removal Logic - Phase 5.6
-    const handleRemoveObject = (index: number, objectName: string) => {
-        // Succinct feedback from Jimini (Cool & Brief)
-        const removalResponses = [
-            "조각을 거두어냅니다.",
-            "파편이 흩어집니다.",
-            "선택을 철회합니다."
-        ];
-        const randomResponse = removalResponses[Math.floor(Math.random() * removalResponses.length)];
+    // Zero-latency Removal for BOTH Objects and Colors
+    const handleRemoveItem = (type: 'object' | 'color', value: string) => {
+        // Succinct feedback (optional, or just silent update)
+        // For zero-latency, we prioritize state update.
 
-        // Update collected elements
-        setCollectedElements(prev => ({
-            ...prev,
-            objects: prev.objects.filter((_, i) => i !== index)
-        }));
+        setCollectedElements(prev => {
+            if (type === 'object') {
+                return { ...prev, objects: prev.objects.filter(item => item !== value) };
+            } else {
+                return { ...prev, colors: prev.colors.filter(item => item !== value) };
+            }
+        });
 
-        // Add Jimini's succinct response
-        addMessage("ai", randomResponse);
-
-        // Visual feedback/Sound simulation could be added here
+        // Optional: Trigger a "shatter" sound here
+        // playShatter();
     };
 
     // Transition Logic - Manual Trigger via Button
@@ -272,6 +279,20 @@ export default function ChatWindow({
 
     const generateStainedGlass = async (data: any) => {
         setIsGenerating(true);
+        // Phase 6.0: Poetic Loading Sequence
+        const loadingTexts = [
+            "빛의 농도를 조율 중입니다...",
+            `${userName} 님의 색채가 번져나갑니다...`,
+            "아르카나가 형상화됩니다..."
+        ];
+        let textIndex = 0;
+        setLoadingText(loadingTexts[0]);
+
+        const interval = setInterval(() => {
+            textIndex = (textIndex + 1) % loadingTexts.length;
+            setLoadingText(loadingTexts[textIndex]);
+        }, 2000);
+
         try {
             // Phase 4.5: High-Density Prompt Construction
             const objectsStr = data.objects ? data.objects.join(", ") : "";
@@ -279,22 +300,80 @@ export default function ChatWindow({
 
             const prompt = `Stained glass style, ${objectsStr}, color palette of ${colorsStr}, intricate lead lines, glowing light from behind, masterpiece, 8k. Mood: ${data.mood}`;
 
+            // Show bridge text before generation (simulated delay if needed, but we do parallel)
+            // Actually user wants bridge text in chat? No, user said "Creation Bridge" helps transition.
+
             const response = await fetch("/api/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ prompt }),
             });
             const result = await response.json();
+
+            clearInterval(interval); // Stop loading text cycle
+
             if (result.image) {
                 setGeneratedImage(result.image);
-                addMessage("ai", "당신의 사유가 빛으로 형상화되었습니다.");
+                addMessage("ai", `드디어 ${userName} 님의 빛의 파편들이 모두 모였습니다! 함께 당신만의 아르카나를 완성해 볼까요?`);
+                setTimeout(() => {
+                    setShowResultModal(true); // Open Phase 6.1 Modal
+                }, 1500);
             }
         } catch (error) {
             console.error(error);
+            clearInterval(interval);
             addMessage("ai", "이미지 생성 실패");
         } finally {
             setIsGenerating(false);
         }
+    };
+
+    // Phase 6.1: 2026 Ad Logic
+    const handleShow2026Destiny = () => {
+        setShowResultModal(false);
+        setShow2026Ad(true);
+        setAdProgress(0);
+
+        // Simulation
+        const duration = 5000; // 5s
+        const startTime = Date.now();
+
+        const adInterval = setInterval(() => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min((elapsed / duration) * 100, 100);
+            setAdProgress(progress);
+
+            if (progress >= 100) {
+                clearInterval(adInterval);
+                setShow2026Ad(false);
+                // Calculate 2026 Card (Mock: Just calculate distinct card or random)
+                // Let's use Year 2026 + Birthdate logic or just current card + 1 for variety
+                const nextCardId = ((tarotCard?.id || 0) + 1) % 22;
+                // Creating a mock card for 2026
+                const mock2026Card: ArcanaCard = {
+                    id: nextCardId,
+                    name: "The Vision 2026",
+                    nameKr: "2026년의 비전",
+                    meaning: "새로운 시작과 운명의 흐름. 2026년, 당신에게 다가올 가장 강력한 빛의 파동입니다.",
+                    keywords: ["Destiny", "New Year", "Light"],
+                };
+                setResult2026Card(mock2026Card);
+                // Show ResultCard for 2026
+                setTimeout(() => {
+                    setShowResultCard(true);
+                    // Override standard behavior? No, standard ResultCard takes props.
+                    // But Standard ResultCard is full screen overlay.
+                    // I will reuse ResultCard state but pass differnet card.
+                    setTarotCard(mock2026Card); // Swap content temporarily?
+                    // Better to just set TarotCard to it?
+                    // Or separate state.
+                    // Let's reuse showResultCard + setTarotCard logic.
+                    // But 'tarotCard' is main state.
+                    // It's fine to switch it for the "End".
+                    setTarotCard(mock2026Card);
+                }, 500);
+            }
+        }, 100);
     };
 
     // Animation Variants
@@ -336,163 +415,178 @@ export default function ChatWindow({
             step === "chat" ? "glass-panel shadow-2xl bg-black/40 backdrop-blur-md border border-white/10" : "bg-transparent shadow-none border-none"
         )}>
             {/* 
-                LAYER 1: WORKSHOP MODE (Chat Interface)
-                Strict Layout: Top(15%) - Center(65%) - Bottom(20%)
+                LAYER 1: WORKSHOP MODE (The Grand Altar)
+                Vertical Stack: Card (Big) -> Indicator -> Chat -> Input
             */}
             <div className={cn(
-                "absolute inset-0 flex flex-col z-10 transition-all duration-1000",
+                "absolute inset-0 flex flex-col items-center justify-between py-6 z-10 transition-all duration-1000",
                 step === "chat" ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
             )}>
                 {/* Scrim Gradient */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none -z-10 transition-opacity duration-1000" />
 
-                {/* Top: Visual Anchor (approx 15%) */}
-                <div className="h-[15%] min-h-[80px] px-6 border-b border-white/5 flex items-center justify-between glass-glow z-20 bg-black/20">
-                    <div className="flex items-center gap-4">
-                        {/* Visual Anchor: Card Icon */}
-                        {tarotCard ? (
-                            <motion.div
-                                layoutId="tarot-card-anchor"
-                                className={cn(
-                                    "relative w-10 h-14 rounded overflow-hidden border border-amber-500/50 transition-all duration-500",
-                                    // Base Glow
-                                    "shadow-[0_0_15px_rgba(251,191,36,0.3)]",
-                                    // Phase 4.6: Object Activation (Gold Glow Intensity)
-                                    collectedElements.objects.length === 1 && "shadow-[0_0_25px_rgba(251,191,36,0.6)] border-amber-400",
-                                    collectedElements.objects.length === 2 && "shadow-[0_0_35px_rgba(251,191,36,0.8)] border-amber-300 ring-1 ring-amber-300",
-                                    collectedElements.objects.length >= 3 && "shadow-[0_0_50px_rgba(251,191,36,1)] border-white ring-2 ring-white/50"
-                                )}
-                            >
-                                {/* Phase 4.6: Color Infusion (Overlay) */}
-                                <div
-                                    className="absolute inset-0 z-0 transition-colors duration-1000 mix-blend-overlay"
+                {/* 1. THE GRAND ALTAR (Card) - 80% Width (Fixed Phase 6.0) */}
+                <div className="relative w-[80%] max-w-[280px] aspect-[2/3] shrink-0 z-20">
+                    {/* Phase 6.0: Visual Symmetry Entrance */}
+                    {step === "chat" && !collectedElements.objects.length && (
+                        <ParticleEffect type="gather" color="#fbbf24" duration={2} />
+                    )}
+                    {tarotCard ? (
+                        <motion.div
+                            layoutId="tarot-card-anchor"
+                            className={cn(
+                                "relative w-full h-full rounded-xl overflow-hidden border border-amber-500/50 transition-all duration-500",
+                                // Grand Altar Shadow
+                                "shadow-[0_0_30px_rgba(255,215,0,0.4)]",
+                                // Dynamic Glow based on Object count
+                                collectedElements.objects.length === 1 && "shadow-[0_0_40px_rgba(255,215,0,0.6)] border-amber-400",
+                                collectedElements.objects.length === 2 && "shadow-[0_0_50px_rgba(255,215,0,0.8)] border-amber-300 ring-1 ring-amber-300",
+                                collectedElements.objects.length >= 3 && "shadow-[0_0_60px_rgba(255,215,0,1)] border-white ring-2 ring-white/50"
+                            )}
+                        >
+                            {/* Glass Texture Overlay */}
+                            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay pointer-events-none" />
+
+                            {/* Phase 4.6: Color Infusion (Overlay) */}
+                            <div
+                                className="absolute inset-0 z-0 transition-colors duration-1000 mix-blend-overlay"
+                                style={{
+                                    background: collectedElements.colors.length > 0
+                                        ? `linear-gradient(to bottom right, ${collectedElements.colors[0]}, ${collectedElements.colors[1] || 'transparent'})`
+                                        : 'linear-gradient(to bottom right, #4c1d95, #000000)',
+                                    opacity: 0.8
+                                }}
+                            />
+                            {/* Particles for Objects */}
+                            {collectedElements.objects.map((_, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                                    transition={{ duration: 2, repeat: Infinity, delay: i * 0.5 }}
+                                    className="absolute w-4 h-4 bg-amber-200 rounded-full blur-[2px] z-10"
                                     style={{
-                                        background: collectedElements.colors.length > 0
-                                            ? `linear-gradient(to bottom right, ${collectedElements.colors[0]}, ${collectedElements.colors[1] || 'transparent'})`
-                                            : 'linear-gradient(to bottom right, #4c1d95, #000000)',
-                                        opacity: 0.8
+                                        top: `${20 + (i * 25)}%`,
+                                        left: `${20 + (i * 20)}%`
                                     }}
                                 />
-                                {/* Particles for Objects */}
-                                {collectedElements.objects.map((_, i) => (
-                                    <motion.div
-                                        key={i}
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
-                                        transition={{ duration: 2, repeat: Infinity, delay: i * 0.5 }}
-                                        className="absolute w-2 h-2 bg-amber-200 rounded-full blur-[1px] z-10"
-                                        style={{
-                                            top: `${20 + (i * 25)}%`,
-                                            left: `${20 + (i * 20)}%`
-                                        }}
-                                    />
-                                ))}
+                            ))}
 
-                                <span className="absolute inset-0 flex items-center justify-center text-[10px] text-amber-200 font-bold z-20 mix-blend-overlay">{tarotCard.id}</span>
-                            </motion.div>
-                        ) : (
-                            // Placeholder anchor
-                            <div className="w-10 h-14 bg-white/5 rounded" />
-                        )}
-                        <div className="flex flex-col">
-                            <span className="text-[10px] text-amber-500 tracking-widest uppercase">WORKSHOP MODE</span>
-                            <span className="font-serif text-lg text-amber-100 tracking-wider">
-                                {tarotCard ? `${tarotCard.id}. ${tarotCard.name} ${tarotCard.nameKr}` : "Jimini"}
-                            </span>
-                        </div>
-                    </div>
-                    {/* Controls */}
-                    <div className="flex items-center gap-3">
-                        <div className="text-xs text-purple-300 font-serif opacity-50">Prism Arcana v0.25</div>
-                        <button onClick={toggleMute} className="p-2 rounded-full hover:bg-white/10 text-purple-300/50 transition-colors">
-                            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                        </button>
+                            <span className="absolute inset-0 flex items-center justify-center text-sm text-amber-200 font-bold z-20 mix-blend-overlay">{tarotCard.id}</span>
+                        </motion.div>
+                    ) : (
+                        <div className="w-full h-full bg-white/5 rounded-xl border border-white/10" />
+                    )}
+                </div>
+
+                {/* 2. PROGRESS INDICATOR (5 Slots) */}
+                <div className="flex items-center gap-3 py-2 z-20">
+                    {/* 3 Object Slots (Circles) */}
+                    {[0, 1, 2].map((i) => (
+                        <div
+                            key={`slot-obj-${i}`}
+                            className={cn(
+                                "w-3 h-3 rounded-full border border-amber-500/50 transition-all duration-500",
+                                i < collectedElements.objects.length ? "bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.8)]" : "bg-transparent"
+                            )}
+                        />
+                    ))}
+                    {/* Spacer */}
+                    <div className="w-4 h-[1px] bg-white/20" />
+                    {/* 2 Color Slots (Squares) */}
+                    {[0, 1].map((i) => (
+                        <div
+                            key={`slot-col-${i}`}
+                            className={cn(
+                                "w-3 h-3 rotate-45 border border-purple-500/50 transition-all duration-500",
+                                i < collectedElements.colors.length
+                                    ? `bg-[${collectedElements.colors[i] || '#a855f7'}] shadow-[0_0_10px_rgba(168,85,247,0.8)] bg-purple-400` // rudimentary fallback color visual
+                                    : "bg-transparent"
+                            )}
+                            style={{
+                                backgroundColor: i < collectedElements.colors.length ? collectedElements.colors[i] : 'transparent'
+                            }}
+                        />
+                    ))}
+                </div>
+
+                {/* 3. CHAT LOG (Condensed) */}
+                <div className="flex-1 w-full max-w-md overflow-hidden relative z-10 min-h-[100px] flex flex-col justify-end px-6">
+                    <div className="overflow-y-auto space-y-3 scrollbar-hide mask-gradient-top-bottom py-2">
+                        <AnimatePresence mode="popLayout">
+                            {messages.slice(-3).map((msg) => ( // Only show last 3 messages for focus
+                                <motion.div
+                                    key={msg.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className={cn("flex w-full", msg.role === "user" ? "justify-end" : "justify-start")}
+                                >
+                                    <div className={cn(
+                                        "max-w-[90%] text-sm shadow-sm px-3 py-2 rounded-lg backdrop-blur-sm",
+                                        msg.role === "user"
+                                            ? "bg-white/10 text-purple-100 font-light text-right border border-white/5"
+                                            : "bg-black/40 text-amber-50/90 font-serif border border-amber-500/20"
+                                    )}>
+                                        {msg.content}
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
                     </div>
                 </div>
 
-                {/* Center: Narrative Chat (approx 65%) */}
-                <div className="h-[65%] flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-purple-900/50 z-10">
-                    <AnimatePresence>
-                        {messages.map((msg) => (
-                            <motion.div
-                                key={msg.id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className={cn("flex w-full", msg.role === "user" ? "justify-end" : "justify-start")}
-                            >
-                                <div className={cn(
-                                    "max-w-[85%] text-sm leading-loose shadow-sm",
-                                    msg.role === "user"
-                                        ? "text-purple-100 font-light text-right"
-                                        : "text-amber-50/90 font-serif"
-                                )}>
-                                    {msg.role === "ai" && <span className="block text-[10px] text-amber-500/50 mb-1 tracking-widest">JIMINI</span>}
-                                    {msg.content}
-                                </div>
-                            </motion.div>
-                        ))}
-                        {isLoading && (
-                            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start w-full">
-                                <div className="flex gap-2 items-center">
-                                    <Sparkles className="w-3 h-3 text-amber-500/50 animate-pulse" />
-                                    <span className="text-xs text-amber-500/50 font-serif tracking-widest">조각을 빚는 중...</span>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                    <div ref={messagesEndRef} />
-                </div>
-
-                {/* Bottom: Input Area (approx 20%) */}
-                {step === "chat" && (
-                    <div className="h-[20%] min-h-[100px] p-6 flex flex-col justify-center bg-gradient-to-t from-black via-black/90 to-transparent z-20">
-                        {/* Object Fragments (Shards) - Phase 5.6 */}
-                        <div className="flex flex-wrap gap-2 mb-4">
-                            <AnimatePresence mode="popLayout">
-                                {collectedElements.objects.map((obj, i) => (
-                                    <motion.div
-                                        key={`${obj}-${i}`}
-                                        initial={{ opacity: 0, scale: 0.8, x: -10 }}
-                                        animate={{ opacity: 1, scale: 1, x: 0 }}
-                                        exit={{
-                                            opacity: 0,
-                                            scale: 1.5,
-                                            filter: "blur(8px)",
-                                            transition: { duration: 0.3 }
-                                        }}
-                                        className="group relative flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md cursor-default hover:bg-white/10 transition-colors"
-                                    >
-                                        <div className="w-1.5 h-1.5 bg-amber-400 rotate-45 group-hover:animate-pulse" />
-                                        <span className="text-[11px] text-amber-100/70 font-serif tracking-wider">{obj}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleRemoveObject(i, obj)}
-                                            className="ml-1 text-white/20 hover:text-amber-500 transition-colors"
-                                        >
-                                            <X className="w-3 h-3" />
-                                        </button>
-                                    </motion.div>
-                                ))}
-                            </AnimatePresence>
-                        </div>
-
-                        <form onSubmit={handleSendMessage} className="w-full relative">
-                            {/* Input Field: Physical "Deletion" Chip Area is likely above, ensuring visibility */}
-                            <input
-                                ref={inputRef}
-                                type="text"
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                placeholder="예: 초록 눈을 가진 검은 고양이"
-                                className="w-full bg-transparent border-b border-amber-500/30 py-3 text-lg text-amber-100 placeholder:text-white/20 focus:outline-none focus:border-amber-400 transition-colors font-serif"
-                            />
-                            {/* Animated Cursor Hint (optional, css based or icon) */}
-                            <div className="absolute right-0 bottom-3 text-amber-500/50 animate-pulse pointer-events-none">
-                                <span className="text-xs tracking-widest">ENTER</span>
-                            </div>
-                        </form>
+                {/* 4. INPUT AREA + SHARDS */}
+                <div className="w-full max-w-md px-6 pb-4 flex flex-col gap-3 z-30">
+                    {/* Shard Chips (Actionable Undo) - Objects AND Colors */}
+                    <div className="flex flex-wrap gap-2 justify-center min-h-[30px]">
+                        <AnimatePresence mode="popLayout">
+                            {/* Objects */}
+                            {collectedElements.objects.map((obj, i) => (
+                                <motion.div
+                                    key={`chip-obj-${i}`}
+                                    initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
+                                    className="flex items-center gap-2 px-3 py-1 bg-amber-900/40 border border-amber-500/30 rounded-full cursor-pointer hover:bg-amber-800/60 transition-colors group"
+                                    onClick={() => handleRemoveItem('object', obj)}
+                                >
+                                    <span className="text-xs text-amber-100/80 font-serif">{obj}</span>
+                                    <X className="w-3 h-3 text-amber-500/50 group-hover:text-amber-300" />
+                                </motion.div>
+                            ))}
+                            {/* Colors */}
+                            {collectedElements.colors.map((col, i) => (
+                                <motion.div
+                                    key={`chip-col-${i}`}
+                                    initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
+                                    className="flex items-center gap-2 px-3 py-1 bg-purple-900/40 border border-purple-500/30 rounded-full cursor-pointer hover:bg-purple-800/60 transition-colors group"
+                                    onClick={() => handleRemoveItem('color', col)}
+                                >
+                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: col }} />
+                                    <span className="text-xs text-purple-100/80 font-serif">{col}</span>
+                                    <X className="w-3 h-3 text-purple-500/50 group-hover:text-purple-300" />
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
                     </div>
-                )}
+
+                    <form onSubmit={handleSendMessage} className="w-full relative">
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder={
+                                collectedElements.objects.length < 3
+                                    ? "이곳에 남길 상징을 이야기해주세요..."
+                                    : "이 풍경을 물들일 색을 이야기해주세요..."
+                            }
+                            className="w-full bg-black/20 border-b border-amber-500/30 py-3 text-center text-lg text-amber-100 placeholder:text-white/10 focus:outline-none focus:border-amber-400 transition-colors font-serif"
+                        />
+                    </form>
+                </div>
             </div>
 
             {/* 
@@ -555,10 +649,10 @@ export default function ChatWindow({
                                     key="narrative-ui"
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
-                                    className="relative w-full h-full flex flex-col"
+                                    className="relative w-full h-full flex flex-col items-center"
                                 >
-                                    {/* Top: Fixed Header (Card Name) - Minimal & Elegant with Breathing */}
-                                    <div className="absolute top-0 left-0 w-full pt-12 text-center z-20">
+                                    {/* 1. Stacked Header (Title + Divider) - Safe Zone Enforced */}
+                                    <div className="w-full pt-12 text-center z-20 shrink-0 mb-20 relative">
                                         <motion.div
                                             initial={{ opacity: 0, y: -20 }}
                                             animate={{ opacity: 1, y: 0 }}
@@ -575,40 +669,41 @@ export default function ChatWindow({
                                             <h1 className="text-3xl md:text-4xl font-serif text-amber-100/90 tracking-[0.2em] font-light">
                                                 {tarotCard?.name} <span className="text-lg opacity-50 ml-2 font-normal">{tarotCard?.nameKr}</span>
                                             </h1>
+                                            {/* Golden Divider */}
                                             <div className="w-12 h-[1px] bg-gradient-to-r from-transparent via-amber-500/50 to-transparent mt-4" />
                                         </motion.div>
                                     </div>
 
-                                    {/* Center/Bottom: Narrative Text (Scrim) */}
-                                    <div className="flex-1 flex flex-col items-center justify-start relative z-10 w-full overflow-hidden">
+                                    {/* 2. Body Text Area - Vertical Flow Enforced */}
+                                    <div className="flex-1 w-full overflow-hidden relative z-10">
                                         {/* Scrollable Container with Mask */}
-                                        <div className="w-full h-full overflow-y-auto pt-[50px] px-[30px] scrollbar-hide mask-gradient-bottom">
-                                            <div className="relative w-full max-w-xl mx-auto pb-20">
+                                        <div className="w-full h-full overflow-y-auto px-10 scrollbar-hide mask-gradient-bottom pb-12">
+                                            <div className="relative w-full max-w-xl mx-auto flex flex-col items-center">
                                                 <p className="text-sm font-serif text-amber-100 leading-[1.8] text-center drop-shadow-lg whitespace-pre-wrap">
                                                     {displayedText}
                                                     {!isComplete && <span className="animate-pulse ml-1 text-amber-500">|</span>}
                                                 </p>
+
+                                                {/* Enter Workshop Button - Flows naturally below text */}
+                                                <AnimatePresence>
+                                                    {isComplete && (
+                                                        <motion.button
+                                                            initial={{ opacity: 0, y: 20 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            exit={{ opacity: 0, y: 10 }}
+                                                            transition={{ delay: 0.5, duration: 1 }}
+                                                            onClick={handleEnterWorkshop}
+                                                            className="mt-12 group flex items-center gap-3 px-8 py-3 rounded-full border border-amber-500/30 bg-black/40 hover:bg-amber-900/40 backdrop-blur-sm transition-all duration-300 hover:border-amber-400/60 z-30 shadow-lg shrink-0"
+                                                        >
+                                                            <span className="text-amber-200/80 font-serif tracking-widest text-sm group-hover:text-amber-100 transition-colors">
+                                                                나만의 조각 채우기
+                                                            </span>
+                                                            <span className="text-amber-400 group-hover:translate-x-1 transition-transform duration-300">→</span>
+                                                        </motion.button>
+                                                    )}
+                                                </AnimatePresence>
                                             </div>
                                         </div>
-
-                                        {/* Enter Workshop Button - Fixed alignment below text area */}
-                                        <AnimatePresence>
-                                            {isComplete && (
-                                                <motion.button
-                                                    initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: 10 }}
-                                                    transition={{ delay: 0.5, duration: 1 }}
-                                                    onClick={handleEnterWorkshop}
-                                                    className="mt-8 group flex items-center gap-3 px-8 py-3 rounded-full border border-amber-500/30 bg-black/40 hover:bg-amber-900/40 backdrop-blur-sm transition-all duration-300 hover:border-amber-400/60 z-30 shadow-lg"
-                                                >
-                                                    <span className="text-amber-200/80 font-serif tracking-widest text-sm group-hover:text-amber-100 transition-colors">
-                                                        나만의 조각 채우기
-                                                    </span>
-                                                    <span className="text-amber-400 group-hover:translate-x-1 transition-transform duration-300">→</span>
-                                                </motion.button>
-                                            )}
-                                        </AnimatePresence>
                                     </div>
 
                                     {/* Scrim Gradient BEHIND text */}
@@ -634,6 +729,62 @@ export default function ChatWindow({
                     }}
                 />
             )}
+
+            {/* Phase 6.1: Result Modal */}
+            {showResultModal && generatedImage && (
+                <ResultModal
+                    imageSrc={generatedImage}
+                    userName={userName}
+                    onClose={() => setShowResultModal(false)}
+                    onShowAd={handleShow2026Destiny}
+                />
+            )}
+
+            {/* Phase 6.1: 2026 Ad Simulation Overlay */}
+            <AnimatePresence>
+                {show2026Ad && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center p-8 text-center"
+                    >
+                        <h2 className="text-xl font-serif text-purple-200 mb-6 animate-pulse">
+                            운명의 주파수를 맞추는 중...
+                        </h2>
+                        <div className="w-64 h-1 bg-white/10 rounded-full overflow-hidden">
+                            <motion.div
+                                className="h-full bg-purple-500 shadow-[0_0_10px_#a855f7]"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${adProgress}%` }}
+                            />
+                        </div>
+                        <p className="mt-4 text-xs text-white/30 font-serif tracking-widest">
+                            더 깊은 운명을 인양하기 위한 준비의 시간...
+                        </p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Poetic Loading Overlay */}
+            <AnimatePresence>
+                {isGenerating && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center"
+                    >
+                        <div className="text-center">
+                            <Sparkles className="w-8 h-8 text-amber-400 mx-auto mb-4 animate-spin-slow" />
+                            <p className="text-amber-100 font-serif text-lg tracking-widest animate-pulse">
+                                {loadingText}
+                            </p>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <RewardAdModal
                 isOpen={showAd}
                 onClose={() => setShowAd(false)}

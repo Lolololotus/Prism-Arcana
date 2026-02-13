@@ -19,7 +19,8 @@ export default function ResultCard({ card, userName, onReveal, onDismiss }: Resu
     }, [onReveal]);
 
     const getCardIcon = (id: number) => {
-        const iconClass = "w-16 h-16 text-amber-200 animate-pulse";
+        // Enhanced Icon Style: Larger, glowing, majestic
+        const iconClass = "w-32 h-32 text-amber-200 drop-shadow-[0_0_15px_rgba(251,191,36,0.8)] animate-pulse-slow";
         switch (id) {
             case 0: return <Feather className={iconClass} />; // The Fool
             case 1: return <Sparkles className={iconClass} />; // The Magician
@@ -42,7 +43,7 @@ export default function ResultCard({ card, userName, onReveal, onDismiss }: Resu
             case 18: return <Moon className={iconClass} />; // The Moon
             case 19: return <Sun className={iconClass} />; // The Sun
             case 20: return <Ghost className={iconClass} />; // Judgement
-            case 21: return <Gavel className={iconClass} />; // The World (Gavel? Maybe Globe if available, else Sprout)
+            case 21: return <Gavel className={iconClass} />; // The World
             default: return <Sparkles className={iconClass} />;
         }
     };
@@ -61,12 +62,12 @@ export default function ResultCard({ card, userName, onReveal, onDismiss }: Resu
 
     const itemVariants = {
         hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
+        visible: { opacity: 1, y: 0, transition: { duration: 0.8 } }
     };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop with Blur */}
+            {/* ... (backdrop) */}
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -75,29 +76,20 @@ export default function ResultCard({ card, userName, onReveal, onDismiss }: Resu
                 onClick={onDismiss}
             />
 
-            {/* Main Card Container with 3D Flip Effect */}
             <motion.div
                 initial={{ scale: 0.8, opacity: 0, rotateY: 180 }}
                 animate={{ scale: 1, opacity: 1, rotateY: 0 }}
                 exit={{ y: -100, opacity: 0, transition: { duration: 0.8 } }}
-                transition={{
-                    type: "spring",
-                    stiffness: 60,
-                    damping: 20,
-                    duration: 1.5
-                }}
+                transition={{ type: "spring", stiffness: 60, damping: 20, duration: 1.5 }}
                 className="relative z-10 w-full max-w-sm aspect-[2/3] perspective-1000 group cursor-pointer"
                 onClick={onDismiss}
             >
-                {/* Gold/Hologram Glow Behind - Intensified */}
+                {/* ... (glow) */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/30 via-purple-500/20 to-transparent blur-3xl rounded-full scale-110 animate-pulse-slow" />
 
-                {/* The Card Itself */}
                 <div className="w-full h-full relative rounded-2xl overflow-hidden border border-amber-500/50 shadow-[0_0_50px_rgba(251,191,36,0.2)] bg-black/80 flex flex-col items-center text-center p-8 backdrop-blur-md">
-                    {/* Decorative Frame */}
                     <div className="absolute inset-3 border border-white/5 rounded-xl pointer-events-none" />
 
-                    {/* Card Content with Staggered Animation */}
                     <motion.div
                         variants={containerVariants}
                         initial="hidden"
@@ -105,9 +97,9 @@ export default function ResultCard({ card, userName, onReveal, onDismiss }: Resu
                         className="flex flex-col items-center h-full justify-center gap-8 py-4"
                     >
                         {/* 1. Stained Glass Heart Symbol */}
-                        <motion.div variants={itemVariants} className="relative w-48 h-48">
+                        <motion.div variants={itemVariants} className="relative w-48 h-48 flex items-center justify-center">
                             <div className="absolute inset-0 bg-amber-500/20 blur-3xl rounded-full animate-pulse-slow" />
-                            {/* Fallback to Icon if image load fails or is missing (handled via error boundary or check, but here we assume img) */}
+
                             {/* Fallback to Icon if image load fails or is missing */}
                             <img
                                 src={`/cards/${card.id}.png`}
@@ -115,12 +107,16 @@ export default function ResultCard({ card, userName, onReveal, onDismiss }: Resu
                                 className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(251,191,36,0.6)] relative z-10 transition-opacity duration-300"
                                 onError={(e) => {
                                     e.currentTarget.style.display = 'none';
-                                    e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
-                                    e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.add('flex');
+                                    // Robust selector using specific class
+                                    const siblingIcon = e.currentTarget.parentElement?.querySelector('.fallback-icon');
+                                    if (siblingIcon) {
+                                        siblingIcon.classList.remove('hidden');
+                                        siblingIcon.classList.add('flex');
+                                    }
                                 }}
                             />
-                            {/* Fallback Icon (Hidden by default, shown via CSS if img fails) */}
-                            <div className="hidden fallback-icon:flex items-center justify-center absolute inset-0 z-0">
+                            {/* Fallback Icon Area - hidden by default unless img fails */}
+                            <div className="fallback-icon hidden items-center justify-center absolute inset-0 z-0">
                                 {getCardIcon(card.id)}
                             </div>
                         </motion.div>
