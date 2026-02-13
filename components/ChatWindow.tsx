@@ -167,7 +167,9 @@ export default function ChatWindow({
                     body: JSON.stringify({
                         messages: payloadMessages,
                         tarotContext: tarotCard,
-                        userName: userName // Ensure persistent identity
+                        userName: userName, // Ensure persistent identity
+                        collectedElements: collectedElements, // Pass current state
+                        mode: "workshop" // Explicit Mode Switch
                     }),
                 });
 
@@ -199,14 +201,18 @@ export default function ChatWindow({
                             const totalItems = (parsedData.current_objects?.length || 0) + (parsedData.current_colors?.length || 0);
                             setFillingStep(Math.min(totalItems, 5));
 
+                            // Phase 6.3: Visual Feedback Enforcement
+                            // If 5 items, immediately trigger visual climax locally even before generation
+                            // The visual card component matches 'collectedElements' length.
+
                             // Trigger Generation ONLY if explicitly complete and meets 5 items rule
+                            // Phase 6.3: We now show a BUTTON instead of auto-generating immediately, or auto-trigger after delay.
+                            // User request: "Replace Input with [Create Arcana] button"
+                            // But also "Auto-trigger in 5s if no action".
+
                             if (parsedData.is_complete && totalItems >= 5) {
-                                const generationData = {
-                                    ...parsedData,
-                                    objects: parsedData.current_objects || parsedData.objects,
-                                    colors: parsedData.current_colors || parsedData.colors
-                                };
-                                generateStainedGlass(generationData);
+                                // Just ensure state is ready. The UI will react to 'collectedElements' length.
+                                // We might want to set a 'readyToGenerate' flag if differentiation is needed.
                             }
                         } catch (e) {
                             console.error("JSON Parse Error", e);
@@ -225,6 +231,26 @@ export default function ChatWindow({
             }
         }
     };
+
+    // Phase 6.3: Auto-trigger Fail-safe
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        const totalItems = collectedElements.objects.length + collectedElements.colors.length;
+
+        if (totalItems >= 5 && !isGenerating && !generatedImage && !showResultModal) {
+            timer = setTimeout(() => {
+                // Auto-trigger if user hasn't clicked after 5s
+                console.log("Auto-triggering generation...");
+                const generationData = {
+                    objects: collectedElements.objects,
+                    colors: collectedElements.colors,
+                    mood: "Mystical and Grand"
+                };
+                generateStainedGlass(generationData);
+            }, 5000);
+        }
+        return () => clearTimeout(timer);
+    }, [collectedElements, isGenerating, generatedImage, showResultModal]);
 
     // ... (rest of functions unchanged)
 
@@ -247,7 +273,8 @@ export default function ChatWindow({
                 body: JSON.stringify({
                     messages: [],
                     tarotContext: card,
-                    userName: userName
+                    userName: userName,
+                    mode: "reveal" // Explicit Mode Switch
                 }),
             });
 
@@ -447,14 +474,14 @@ export default function ChatWindow({
                             {/* Glass Texture Overlay */}
                             <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay pointer-events-none" />
 
-                            {/* Phase 4.6: Color Infusion (Overlay) */}
+                            {/* Phase 4.6 & 6.3: Color Infusion (Overlay) - Immediate Reaction */}
                             <div
                                 className="absolute inset-0 z-0 transition-colors duration-1000 mix-blend-overlay"
                                 style={{
                                     background: collectedElements.colors.length > 0
-                                        ? `linear-gradient(to bottom right, ${collectedElements.colors[0]}, ${collectedElements.colors[1] || 'transparent'})`
+                                        ? `linear-gradient(to bottom right, ${collectedElements.colors[0]}, ${collectedElements.colors[1] || collectedElements.colors[0]})`
                                         : 'linear-gradient(to bottom right, #4c1d95, #000000)',
-                                    opacity: 0.8
+                                    opacity: collectedElements.objects.length >= 3 && collectedElements.colors.length >= 2 ? 0.9 : 0.8
                                 }}
                             />
                             {/* Particles for Objects */}
@@ -573,20 +600,56 @@ export default function ChatWindow({
                     </div>
 
                     <form onSubmit={handleSendMessage} className="w-full relative">
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder={
-                                collectedElements.objects.length < 3
-                                    ? "이곳에 남길 상징을 이야기해주세요..."
-                                    : "이 풍경을 물들일 색을 이야기해주세요..."
-                            }
-                            className="w-full bg-black/20 border-b border-amber-500/30 py-3 text-center text-lg text-amber-100 placeholder:text-white/10 focus:outline-none focus:border-amber-400 transition-colors font-serif"
-                        />
+                        {/* Phase 6.3: Hide Input when complete */}
+                        {!(collectedElements.objects.length >= 3 && collectedElements.colors.length >= 2) && (
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                placeholder={
+                                    collectedElements.objects.length < 3
+                                        ? "이곳에 남길 상징을 이야기해주세요..."
+                                        : "이 풍경을 물들일 색을 이야기해주세요..."
+                                }
+                                className="w-full bg-black/20 border-b border-amber-500/30 py-3 text-center text-lg text-amber-100 placeholder:text-white/10 focus:outline-none focus:border-amber-400 transition-colors font-serif"
+                            />
+                        )}
                     </form>
                 </div>
+
+                {/* 5. STICKY CREATE BUTTON (Phase 6.3) */}
+                <AnimatePresence>
+                    {collectedElements.objects.length >= 3 && collectedElements.colors.length >= 2 && !isGenerating && !generatedImage && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 50 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 50 }}
+                            className="absolute bottom-6 z-50 w-full px-6 flex justify-center pointer-events-auto"
+                        >
+                            <button
+                                onClick={() => {
+                                    const generationData = {
+                                        objects: collectedElements.objects,
+                                        colors: collectedElements.colors,
+                                        mood: "Mystical and Grand" // Default mood or derived
+                                    };
+                                    generateStainedGlass(generationData);
+                                }}
+                                className="relative group w-full max-w-sm py-4 rounded-xl bg-gradient-to-r from-amber-900/90 to-black border border-amber-500/50 shadow-[0_0_30px_rgba(251,191,36,0.5)] overflow-hidden"
+                            >
+                                <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay" />
+                                <span className="relative z-10 font-serif text-amber-100 text-lg tracking-[0.2em] flex items-center justify-center gap-3">
+                                    <Sparkles className="w-5 h-5 text-amber-400 animate-spin-slow" />
+                                    나만의 아르카나 생성하기
+                                    <Sparkles className="w-5 h-5 text-amber-400 animate-spin-slow" />
+                                </span>
+                                {/* Shimmer Effect */}
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             {/* 
@@ -775,7 +838,12 @@ export default function ChatWindow({
                         exit={{ opacity: 0 }}
                         className="absolute inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center"
                     >
-                        <div className="text-center">
+                        {/* Phase 6.0: Visual Symmetry Swirl */}
+                        <div className="absolute inset-0 pointer-events-none">
+                            <ParticleEffect type="swirl" color="#fbbf24" duration={2} />
+                        </div>
+
+                        <div className="text-center z-10">
                             <Sparkles className="w-8 h-8 text-amber-400 mx-auto mb-4 animate-spin-slow" />
                             <p className="text-amber-100 font-serif text-lg tracking-widest animate-pulse">
                                 {loadingText}
