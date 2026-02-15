@@ -77,13 +77,8 @@ export default function ChatWindow() {
         const userInput = input.trim();
         setInput("");
         addMessage("user", userInput);
-
-        if (collectedElements.objects.length < 3) {
-            setCollectedElements(prev => ({ ...prev, objects: [...prev.objects, userInput] }));
-        } else if (collectedElements.colors.length < 2) {
-            setCollectedElements(prev => ({ ...prev, colors: [...prev.colors, userInput] }));
-        }
-
+        if (collectedElements.objects.length < 3) setCollectedElements(prev => ({ ...prev, objects: [...prev.objects, userInput] }));
+        else if (collectedElements.colors.length < 2) setCollectedElements(prev => ({ ...prev, colors: [...prev.colors, userInput] }));
         setIsLoading(true);
         try {
             const response = await fetch("/api/chat", {
@@ -93,9 +88,15 @@ export default function ChatWindow() {
             });
             const data = await response.json();
             if (data.content) addMessage("ai", data.content);
-        } finally {
-            setIsLoading(false);
-        }
+        } finally { setIsLoading(false); }
+    };
+
+    const handleRemoveItem = (type: 'object' | 'color', value: string) => {
+        setCollectedElements(prev => ({
+            ...prev,
+            objects: type === 'object' ? prev.objects.filter(i => i !== value) : prev.objects,
+            colors: type === 'color' ? prev.colors.filter(i => i !== value) : prev.colors
+        }));
     };
 
     const generateStainedGlass = async () => {
@@ -133,17 +134,16 @@ export default function ChatWindow() {
         <div className="flex flex-col h-screen w-full max-w-2xl mx-auto relative overflow-hidden bg-black font-serif text-white">
             <AnimatePresence mode="wait">
                 {ritualStep === "complete" && (
-                    <motion.div key="workshop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col h-full">
-                        {/* 1. 고정 상단: 카드 시각화 (크기 적정화) */}
-                        <div className="flex-none pt-10 pb-4 flex flex-col items-center bg-black/50 backdrop-blur-sm border-b border-white/5">
-                            <div className="relative w-40 aspect-[2/3] shadow-[0_0_30px_rgba(251,191,36,0.2)] rounded-lg overflow-hidden border border-white/10">
-                                {tarotCard && <img src={`/cards/${tarotCard.id}.jpg`} alt="Life Card" className="w-full h-full object-cover opacity-80" onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/400x600/000000/fbbf24?text=Fate"; }} />}
+                    <motion.div key="workshop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col h-full w-full">
+                        {/* 1. 상단 고정: 인생 카드 (레이아웃 최적화) */}
+                        <div className="flex-none pt-12 pb-4 flex flex-col items-center bg-black/40 backdrop-blur-sm border-b border-white/5">
+                            <div className="relative w-36 aspect-[2/3] shadow-[0_0_40px_rgba(251,191,36,0.15)] rounded-lg overflow-hidden border border-white/10">
+                                {tarotCard && <img src={`/cards/${tarotCard.id}.jpg`} alt="Life Card" className="w-full h-full object-cover opacity-80" onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/400x600/000000/fbbf24?text=Arcana"; }} />}
                                 <div className="absolute inset-0 mix-blend-overlay" style={{ background: collectedElements.colors.length > 0 ? `linear-gradient(45deg, ${collectedElements.colors[0]}, ${collectedElements.colors[1] || 'transparent'})` : 'transparent' }} />
                             </div>
-                            {/* 파편 UI */}
                             <div className="flex flex-wrap gap-2 mt-4 px-4 justify-center">
                                 {[...collectedElements.objects, ...collectedElements.colors].map((item, i) => (
-                                    <div key={i} className="flex items-center gap-1.5 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] text-amber-200/80">
+                                    <div key={i} className="flex items-center gap-1.5 px-2 py-0.5 bg-white/5 border border-white/10 rounded-full text-[9px] text-amber-100/60">
                                         {item}
                                         <X className="w-2.5 h-2.5 cursor-pointer hover:text-red-400" onClick={() => handleRemoveItem(i < collectedElements.objects.length ? 'object' : 'color', item)} />
                                     </div>
@@ -151,16 +151,16 @@ export default function ChatWindow() {
                             </div>
                         </div>
 
-                        {/* 2. 중앙: 채팅 로그 */}
+                        {/* 2. 중앙: 채팅 영역 */}
                         <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-hide space-y-6" ref={messagesEndRef}>
                             {messages.map(msg => (
                                 <div key={msg.id} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}>
-                                    <div className={cn("max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm", msg.role === "user" ? "bg-white/10" : "bg-amber-900/10 border border-amber-500/10 text-amber-50")}>{msg.content}</div>
+                                    <div className={cn("max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed", msg.role === "user" ? "bg-white/10" : "bg-amber-900/10 border border-amber-500/10 text-amber-50")}>{msg.content}</div>
                                 </div>
                             ))}
                         </div>
 
-                        {/* 3. 하단: 입력창 */}
+                        {/* 3. 하단 고정: 입력 [cite: 2026-02-16] */}
                         <div className="flex-none p-6 pb-10">
                             {collectedElements.objects.length >= 3 && collectedElements.colors.length >= 2 && (
                                 <button onClick={generateStainedGlass} className="w-full mb-6 py-4 bg-amber-600/90 text-white rounded-full shadow-lg flex items-center justify-center gap-2 hover:bg-amber-600 transition-all font-serif">
@@ -175,7 +175,7 @@ export default function ChatWindow() {
                 )}
             </AnimatePresence>
 
-            {/* 초기 진입 단계 [cite: 2026-02-16] */}
+            {/* 초기화 및 서사 단계 [cite: 2026-02-16] */}
             <AnimatePresence mode="wait">
                 {ritualStep !== "complete" && (
                     <motion.div exit={{ opacity: 0 }} className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black p-10 text-center font-serif">
@@ -190,10 +190,7 @@ export default function ChatWindow() {
                                 <h2 className="text-2xl text-amber-100 mb-8">{USER_NAME_FIXED} 님, 우주가 새겨놓은 숫자는?</h2>
                                 <input autoFocus maxLength={8} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => {
                                     if (e.key === 'Enter' && /^\d{8}$/.test(input)) {
-                                        const card = calculateLifePathNumber(input);
-                                        setTarotCard(card);
-                                        setShowResultCard(true);
-                                        setInput("");
+                                        const card = calculateLifePathNumber(input); setTarotCard(card); setShowResultCard(true); setInput("");
                                     }
                                 }} className="bg-transparent border-b border-amber-500/50 text-3xl text-center focus:outline-none w-64 font-serif" placeholder="YYYYMMDD" />
                             </div>
@@ -206,10 +203,7 @@ export default function ChatWindow() {
                                     <>
                                         <p className="text-amber-100 leading-loose whitespace-pre-wrap">{displayedText}</p>
                                         {isComplete && narrativeContent && (
-                                            <button onClick={() => {
-                                                setRitualStep("complete");
-                                                addMessage("ai", `${USER_NAME_FIXED} 님, 이제 이 투명한 도안 위로 당신만의 빛을 입힐 차례입니다. 상징적인 '사물' 하나를 들려주시겠어요?`);
-                                            }} className="mt-10 px-8 py-3 border border-amber-500/40 text-amber-200 rounded-full hover:bg-amber-900/20 transition-all">나만의 인생 카드 만들기 <ChevronRight className="inline w-4 h-4 ml-1" /></button>
+                                            <button onClick={() => { setRitualStep("complete"); addMessage("ai", `${USER_NAME_FIXED} 님, 이제 이 투명한 도안 위로 당신만의 빛을 입힐 차례입니다. 상징적인 '사물' 하나를 들려주시겠어요?`); }} className="mt-10 px-8 py-3 border border-amber-500/40 text-amber-200 rounded-full hover:bg-amber-900/20 transition-all">나만의 인생 카드 만들기 <ChevronRight className="inline w-4 h-4 ml-1" /></button>
                                         )}
                                     </>
                                 )}
