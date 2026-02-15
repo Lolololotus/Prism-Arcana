@@ -7,12 +7,12 @@
 ---
 
 **##⚓ Prism-Arcana: 120-Hour Soul Retrieval Roadmap**
-* **2026-02-11 10:00 | [Genesis & Vision]**: SnF Ecosystem의 첫 단추인 Prism-Arcana 컨셉 설계 [cite: 2026-02-11]. "사유를 인양하여 빛의 도안(Arcana)으로 형상화한다"는 메타포 확정.
+* **2026-02-11 10:00 | [Genesis & Vision]**: Prism-Arcana 컨셉 설계. "사유를 인양하여 빛의 도안(Arcana)으로 형상화한다"는 메타포 확정.
 * **2026-02-14 14:00 | [Infrastructure]**: Next.js 기반 아키텍처 수립 및 Gemini Flash API를 활용한 서사 엔진(Seer Engine) 초기 빌드 성공.
 * **2026-02-16 01:00 | [The Final Crisis]**: 배포 D-1, 치명적인 호칭 오류('로로터스'), 맞춤법 파괴('됩됩니다'), 그리고 TypeScript 문법 충돌로 인한 빌드 중단 사태 발생.
 * **2026-02-16 02:00 | [Surgical Breakthrough]**: 비개발자 파운더와 AI 리드 개발자의 '실시간 코드 수술' 개시. 6차례의 전체 풀코드 업데이트를 통해 JSX 태그 불일치 및 이름 성역화 로직 완비.
 * **2026-02-16 02:30 | [Asset Emergency]**: 카드 이미지 파일 부재 확인. 즉시 외부 리소스 플레이스홀더 로직과 Failsafe를 주입하여 서비스 중단 없는 인양 환경 구축.
-* **2026-02-16 02:37 | [Full Integrity**]: v0.3.6 최종 통합 마스터 빌드 완료. '나만의 인생 카드 만들기' 마케팅 서사 장착.
+* **2026-02-16 02:37 | [Full Integrity]**: v0.3.6 최종 통합 마스터 빌드 완료. '나만의 인생 카드 만들기' 마케팅 서사 장착.
 
 --
 
