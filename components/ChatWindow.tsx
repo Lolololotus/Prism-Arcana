@@ -63,13 +63,6 @@ export default function ChatWindow() {
         } finally { setIsLoading(false); }
     };
 
-    const handleRemoveItem = (type: 'object' | 'color', value: string) => {
-        setCollectedElements(prev => ({
-            ...prev,
-            objects: type === 'object' ? prev.objects.filter(i => i !== value) : prev.objects,
-            colors: type === 'color' ? prev.colors.filter(i => i !== value) : prev.colors
-        }));
-    };
 
     const handleSendMessage = async (e?: React.FormEvent) => {
         e?.preventDefault();
