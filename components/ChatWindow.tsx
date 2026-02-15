@@ -55,7 +55,6 @@ export default function ChatWindow() {
         setMessages(prev => [...prev, { id: (Date.now() + Math.random()).toString(), role, content }]);
     };
 
-    // [V0.3.6 FIX] 누락되었던 AI 해석 시작 함수 복구
     const triggerInitialGreeting = async (card: ArcanaCard) => {
         setIsLoading(true);
         setNarrativeContent("운명을 읽어내고 있습니다...");
@@ -70,11 +69,9 @@ export default function ChatWindow() {
                 }),
             });
             const data = await response.json();
-            if (data.content) {
-                setNarrativeContent(data.content);
-            }
+            if (data.content) setNarrativeContent(data.content);
         } catch (error) {
-            setNarrativeContent("운명을 읽어내는 중 흐름이 끊겼습니다.");
+            setNarrativeContent("운명의 흐름이 잠시 끊겼습니다.");
         } finally {
             setIsLoading(false);
         }
@@ -192,32 +189,31 @@ export default function ChatWindow() {
                 )}
             </AnimatePresence>
 
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
                 {ritualStep !== "complete" && (
                     <motion.div exit={{ opacity: 0 }} className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black p-10 text-center">
                         {ritualStep === "name" && (
-                            <motion.div variants={fadeVariants} initial="hidden" animate="visible">
+                            <motion.div key="name" variants={fadeVariants} initial="hidden" animate="visible">
                                 <h2 className="text-2xl font-serif text-amber-100 mb-8">당신의 이름을 어둠 속에 남겨주시겠습니까?</h2>
                                 <input autoFocus value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (setUserName(USER_NAME_FIXED), setInput(""), setRitualStep("birthdate"))} className="bg-transparent border-b border-amber-500/50 text-3xl text-center text-white focus:outline-none w-64" />
                             </motion.div>
                         )}
                         {ritualStep === "birthdate" && (
-                            <motion.div variants={fadeVariants} initial="hidden" animate="visible">
+                            <motion.div key="birth" variants={fadeVariants} initial="hidden" animate="visible">
                                 <h2 className="text-2xl font-serif text-amber-100 mb-8">{USER_NAME_FIXED} 님, 우주가 새겨놓은 숫자는?</h2>
                                 <input autoFocus maxLength={8} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => {
                                     if (e.key === 'Enter' && /^\d{8}$/.test(input)) {
                                         const card = calculateLifePathNumber(input);
                                         setTarotCard(card);
-                                        setInput("");
-                                        playReveal();
-                                        setShowResultCard(true);
                                         triggerInitialGreeting(card);
+                                        setRitualStep("narrative");
+                                        setInput("");
                                     }
-                                }} className="bg-transparent border-b border-amber-500/50 text-3xl text-center text-white focus:outline-none w-64 tracking-widest" placeholder="YYYYMMDD" />
+                                }} className="bg-transparent border-b border-amber-500/50 text-3xl text-center text-white focus:outline-none w-64" placeholder="YYYYMMDD" />
                             </motion.div>
                         )}
                         {ritualStep === "narrative" && (
-                            <motion.div variants={fadeVariants} initial="hidden" animate="visible" className="max-w-md">
+                            <motion.div key="narrative" variants={fadeVariants} initial="hidden" animate="visible" className="max-w-md">
                                 <p className="text-amber-100 font-serif leading-loose whitespace-pre-wrap">{displayedText}</p>
                                 {isComplete && (
                                     <button onClick={() => setRitualStep("complete")} className="mt-10 px-8 py-3 border border-amber-500/40 text-amber-200 rounded-full hover:bg-amber-900/20 transition-all">
@@ -242,7 +238,7 @@ export default function ChatWindow() {
                 )}
             </AnimatePresence>
             {isGenerating && <div className="absolute inset-0 z-[150] bg-black/60 backdrop-blur-md flex flex-col items-center justify-center text-amber-100"><ParticleEffect type="swirl" color="#fbbf24" /><p className="mt-4 font-serif animate-pulse">{loadingText}</p></div>}
-            {showResultCard && tarotCard && <ResultCard card={tarotCard} userName={USER_NAME_FIXED} onDismiss={() => { setShowResultCard(false); setRitualStep("narrative"); }} />}
+            {showResultCard && tarotCard && <ResultCard card={tarotCard} userName={USER_NAME_FIXED} onDismiss={() => setShowResultCard(false)} />}
         </div>
     );
 }
