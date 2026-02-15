@@ -6,7 +6,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 export async function POST(req: Request) {
   try {
     const { tarotContext, mode = "reveal" } = await req.json();
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     // [V0.4.6] 서사 농도 복원: 신비롭지만 날카로운 통찰 [cite: 2026-02-11, 2026-02-16]
     const IDENTITY = `
