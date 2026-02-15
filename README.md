@@ -14,7 +14,8 @@
 * **2026-02-16 02:30 | [Asset Emergency]**: 카드 이미지 파일 부재 확인. 즉시 외부 리소스 플레이스홀더 로직과 Failsafe를 주입하여 서비스 중단 없는 인양 환경 구축.
 * **2026-02-16 02:37 | [Full Integrity]**: v0.3.6 최종 통합 마스터 빌드 완료. '나만의 인생 카드 만들기' 마케팅 서사 장착.
 
---
+
+---
 
 
 ## 🍃 SnF Ecosystem: The Restoration Journey
