@@ -205,11 +205,12 @@ export default function ChatWindow() {
                                     if (e.key === 'Enter' && /^\d{8}$/.test(input)) {
                                         const card = calculateLifePathNumber(input);
                                         setTarotCard(card);
-                                        triggerInitialGreeting(card);
-                                        setRitualStep("narrative");
                                         setInput("");
+                                        playReveal();
+                                        setShowResultCard(true);
+                                        triggerInitialGreeting(card);
                                     }
-                                }} className="bg-transparent border-b border-amber-500/50 text-3xl text-center text-white focus:outline-none w-64" placeholder="YYYYMMDD" />
+                                }} className="bg-transparent border-b border-amber-500/50 text-3xl text-center text-white focus:outline-none w-64 tracking-widest" placeholder="YYYYMMDD" />
                             </motion.div>
                         )}
                         {ritualStep === "narrative" && (
@@ -238,7 +239,7 @@ export default function ChatWindow() {
                 )}
             </AnimatePresence>
             {isGenerating && <div className="absolute inset-0 z-[150] bg-black/60 backdrop-blur-md flex flex-col items-center justify-center text-amber-100"><ParticleEffect type="swirl" color="#fbbf24" /><p className="mt-4 font-serif animate-pulse">{loadingText}</p></div>}
-            {showResultCard && tarotCard && <ResultCard card={tarotCard} userName={USER_NAME_FIXED} onDismiss={() => setShowResultCard(false)} />}
+            {showResultCard && tarotCard && <ResultCard card={tarotCard} userName={USER_NAME_FIXED} onDismiss={() => { setShowResultCard(false); setRitualStep("narrative"); }} />}
         </div>
     );
 }
