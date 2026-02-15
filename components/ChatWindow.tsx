@@ -13,7 +13,8 @@ interface Message { id: string; role: "ai" | "user"; content: React.ReactNode; }
 
 export default function ChatWindow() {
     const [lang, setLang] = useState<"ko" | "en">("ko");
-    const USER_NAME = lang === "ko" ? "로터스" : "Lotus";
+    const [userName, setUserName] = useState("");
+    const USER_NAME = userName || (lang === "ko" ? "로터스" : "Lotus");
 
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
@@ -50,7 +51,7 @@ export default function ChatWindow() {
             const response = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tarotContext: tarotCard, mode: "workshop", lang }),
+                body: JSON.stringify({ tarotContext: tarotCard, mode: "workshop", lang, rawName: USER_NAME }),
             });
             const data = await response.json();
             if (data.content) addMessage("ai", data.content);
@@ -64,7 +65,7 @@ export default function ChatWindow() {
             const response = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tarotContext: card, mode: "reveal", lang }),
+                body: JSON.stringify({ tarotContext: card, mode: "reveal", lang, rawName: USER_NAME }),
             });
             const data = await response.json();
             if (data.content) setNarrativeContent(data.content);
@@ -94,7 +95,7 @@ export default function ChatWindow() {
             const response = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tarotContext: tarotCard, mode: "workshop", lang }),
+                body: JSON.stringify({ tarotContext: tarotCard, mode: "workshop", lang, rawName: USER_NAME }),
             });
             const data = await response.json();
             if (data.content) addMessage("ai", data.content);
@@ -172,10 +173,15 @@ export default function ChatWindow() {
                             ))}
                         </div>
 
-                        <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-hide space-y-6" ref={messagesEndRef}>
+                        <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-hide space-y-8" ref={messagesEndRef}>
                             {messages.map(msg => (
                                 <div key={msg.id} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}>
-                                    <div className={cn("max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm", msg.role === "user" ? "bg-white/10" : "bg-amber-900/10 border border-amber-500/10 text-amber-50")}>{msg.content}</div>
+                                    <div className={cn(
+                                        "max-w-[85%] px-5 py-4 rounded-2xl text-sm leading-relaxed tracking-tight shadow-lg",
+                                        msg.role === "user" ? "bg-white/10 text-white" : "bg-amber-900/10 border border-amber-500/10 text-amber-50"
+                                    )}>
+                                        {msg.content}
+                                    </div>
                                 </div>
                             ))}
                             {isLoading && <div className="text-amber-100/50 text-[10px] animate-pulse pl-2 font-serif uppercase tracking-widest">{lang === 'ko' ? '지미니가 운명을 읽는 중...' : 'Jimini is reading fate...'}</div>}
@@ -212,7 +218,7 @@ export default function ChatWindow() {
                         {ritualStep === "name" && (
                             <div key="name">
                                 <h2 className="text-2xl text-amber-100 mb-8 tracking-tight">{T.name}</h2>
-                                <input autoFocus value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (setRitualStep("birthdate"), setInput(""))} className="bg-transparent border-b border-amber-500/50 text-3xl text-center focus:outline-none w-64 font-serif tracking-widest" />
+                                <input autoFocus value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (setUserName(input), setRitualStep("birthdate"), setInput(""))} className="bg-transparent border-b border-amber-500/50 text-3xl text-center focus:outline-none w-64 font-serif tracking-widest" />
                             </div>
                         )}
                         {ritualStep === "birthdate" && (
