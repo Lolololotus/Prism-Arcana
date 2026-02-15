@@ -9,11 +9,12 @@ import { cn } from "@/lib/utils";
 interface ResultCardProps {
     card: ArcanaCard;
     userName: string;
-    onReveal?: () => void; // Optional to avoid breaking if not passed immediately
+    onReveal?: () => void;
     onDismiss: () => void;
+    isFinal?: boolean; // 2026년 운명 카드 여부
 }
 
-export default function ResultCard({ card, userName, onReveal, onDismiss }: ResultCardProps) {
+export default function ResultCard({ card, userName, onReveal, onDismiss, isFinal }: ResultCardProps) {
     React.useEffect(() => {
         if (onReveal) onReveal();
     }, [onReveal]);
@@ -87,8 +88,11 @@ export default function ResultCard({ card, userName, onReveal, onDismiss }: Resu
                 {/* ... (glow) */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/30 via-purple-500/20 to-transparent blur-3xl rounded-full scale-110 animate-pulse-slow" />
 
-                <div className="w-full h-full relative rounded-2xl overflow-hidden border border-amber-500/50 shadow-[0_0_50px_rgba(251,191,36,0.2)] bg-black/80 flex flex-col items-center text-center p-8 backdrop-blur-md">
-                    <div className="absolute inset-3 border border-white/5 rounded-xl pointer-events-none" />
+                <div className={cn(
+                    "w-full h-full relative rounded-2xl overflow-hidden border transition-all duration-1000 bg-black/80 flex flex-col items-center text-center p-8 backdrop-blur-md",
+                    isFinal ? "border-purple-500/60 shadow-[0_0_80px_rgba(168,85,247,0.4)]" : "border-amber-500/50 shadow-[0_0_50px_rgba(251,191,36,0.2)]"
+                )}>
+                    <div className={cn("absolute inset-3 border rounded-xl pointer-events-none", isFinal ? "border-purple-500/20" : "border-white/5")} />
 
                     <motion.div
                         variants={containerVariants}
@@ -123,10 +127,14 @@ export default function ResultCard({ card, userName, onReveal, onDismiss }: Resu
 
                         {/* 2. Card Name */}
                         <motion.div variants={itemVariants} className="space-y-2 relative z-20">
-                            <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-amber-100 to-amber-400 font-serif drop-shadow-glow tracking-wider">
+                            {isFinal && <p className="text-[10px] text-purple-400 uppercase tracking-[0.3em] font-bold mb-4">Your 2026 Destiny</p>}
+                            <h2 className={cn(
+                                "text-4xl font-bold text-transparent bg-clip-text font-serif drop-shadow-glow tracking-wider",
+                                isFinal ? "bg-gradient-to-b from-purple-100 to-purple-400" : "bg-gradient-to-b from-amber-100 to-amber-400"
+                            )}>
                                 {card.id}. {card.name}
                             </h2>
-                            <p className="text-amber-200/60 font-serif text-lg tracking-widest uppercase">{card.nameKr}</p>
+                            <p className={cn("font-serif text-lg tracking-widest uppercase", isFinal ? "text-purple-200/60" : "text-amber-200/60")}>{card.nameKr}</p>
                         </motion.div>
 
                         {/* 3. Keywords & Mintimal Divider */}

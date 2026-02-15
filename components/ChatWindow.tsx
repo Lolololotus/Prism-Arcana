@@ -29,18 +29,18 @@ export default function ChatWindow() {
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [tarotCard, setTarotCard] = useState<ArcanaCard | null>(null);
-    const [showResultCard, setShowResultCard] = useState(false); // Step 3
+    const [showResultCard, setShowResultCard] = useState(false);
     const [collectedElements, setCollectedElements] = useState<{ objects: string[], colors: string[] }>({ objects: [], colors: [] });
     const [ritualStep, setRitualStep] = useState<"name" | "birthdate" | "narrative" | "complete">("name");
-    const [narrativeContent, setNarrativeContent] = useState<string | null>(null); // Step 4
+    const [narrativeContent, setNarrativeContent] = useState<string | null>(null);
     const { displayedText, isComplete } = useTypewriter(narrativeContent, 50);
     const [isGenerating, setIsGenerating] = useState(false);
     const [loadingText, setLoadingText] = useState("당신의 운명을 인양하고 있습니다...");
-    const [showResultModal, setShowResultModal] = useState(false); // Step 6
+    const [showResultModal, setShowResultModal] = useState(false);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-    const [show2026Ad, setShow2026Ad] = useState(false); // Step 8
+    const [show2026Ad, setShow2026Ad] = useState(false);
     const [adProgress, setAdProgress] = useState(0);
-    const [showFinalFate, setShowFinalFate] = useState(false); // Step 9
+    const [showFinalFate, setShowFinalFate] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
@@ -49,7 +49,6 @@ export default function ChatWindow() {
         setMessages(prev => [...prev, { id: (Date.now() + Math.random()).toString(), role, content }]);
     };
 
-    // Step 4 실행 함수
     const startInterpretation = async (card: ArcanaCard) => {
         setIsLoading(true);
         setNarrativeContent("운명을 읽어내고 있습니다...");
@@ -109,7 +108,6 @@ export default function ChatWindow() {
             <AnimatePresence mode="wait">
                 {ritualStep === "complete" && (
                     <motion.div key="workshop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center w-full h-full pt-[40px] px-6">
-                        {/* Step 5: Grand Altar Aesthetics (80% scaling) [cite: 2026-02-16] */}
                         <div className="relative w-[80%] aspect-[2/3] mb-[40px] z-10 shadow-[0_0_50px_rgba(251,191,36,0.3)]">
                             <motion.div className="w-full h-full rounded-2xl border-2 border-amber-500/30 overflow-hidden relative">
                                 <div className="absolute inset-0 mix-blend-overlay" style={{ background: collectedElements.colors.length > 0 ? `linear-gradient(45deg, ${collectedElements.colors[0]}, ${collectedElements.colors[1] || 'transparent'})` : 'transparent' }} />
@@ -154,7 +152,7 @@ export default function ChatWindow() {
                                     if (e.key === 'Enter' && /^\d{8}$/.test(input)) {
                                         const card = calculateLifePathNumber(input);
                                         setTarotCard(card);
-                                        setShowResultCard(true); // Step 3: Card Reveal first
+                                        setShowResultCard(true);
                                         setInput("");
                                     }
                                 }} className="bg-transparent border-b border-amber-500/50 text-3xl text-center text-white focus:outline-none w-64" placeholder="YYYYMMDD" />
@@ -175,21 +173,19 @@ export default function ChatWindow() {
                 )}
             </AnimatePresence>
 
-            {/* Step 3: ResultCard - Dismissal triggers Step 4 */}
+            {/* Step 3: ResultCard - isFinal 제거로 에러 해결 [cite: 2026-02-16] */}
             {showResultCard && tarotCard && (
                 <ResultCard card={tarotCard} userName={USER_NAME_FIXED} onDismiss={() => {
                     setShowResultCard(false);
                     setRitualStep("narrative");
-                    startInterpretation(tarotCard); // Step 4: Start AI Interpretation
+                    startInterpretation(tarotCard);
                 }} />
             )}
 
-            {/* Step 6-7: ResultModal */}
             {showResultModal && generatedImage && (
                 <ResultModal imageSrc={generatedImage} userName={USER_NAME_FIXED} onClose={() => setShowResultModal(false)} onShowAd={handleShow2026Ad} />
             )}
 
-            {/* Step 8: Simulated Ad Wait */}
             <AnimatePresence>
                 {show2026Ad && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center p-10 text-center">
@@ -199,9 +195,9 @@ export default function ChatWindow() {
                 )}
             </AnimatePresence>
 
-            {/* Step 9: Final Fate Card Reveal */}
+            {/* Step 9: Final Fate Card Reveal - isFinal 제거 [cite: 2026-02-16] */}
             {showFinalFate && tarotCard && (
-                <ResultCard card={tarotCard} userName={USER_NAME_FIXED} onDismiss={() => setShowFinalFate(false)} isFinal={true} />
+                <ResultCard card={tarotCard} userName={USER_NAME_FIXED} onDismiss={() => setShowFinalFate(false)} />
             )}
 
             {isGenerating && <div className="absolute inset-0 z-[150] bg-black/60 backdrop-blur-md flex flex-col items-center justify-center text-amber-100"><p className="mt-4 font-serif animate-pulse">{loadingText}</p></div>}
