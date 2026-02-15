@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { AnimatePresence, motion, Variants } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Sparkles, X, ChevronRight, Languages } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { calculateLifePathNumber, ArcanaCard } from "@/lib/tarot";
@@ -22,8 +22,11 @@ export default function ChatWindow() {
     const [showResultCard, setShowResultCard] = useState(false);
     const [collectedElements, setCollectedElements] = useState<{ objects: string[], colors: string[] }>({ objects: [], colors: [] });
     const [ritualStep, setRitualStep] = useState<"name" | "birthdate" | "narrative" | "complete">("name");
+
+    // [V0.5.1 FIX] 로딩 문구와 실제 해석 사이의 공백을 메우는 로직 [cite: 2026-02-16]
     const [narrativeContent, setNarrativeContent] = useState<string | null>(null);
-    const { displayedText, isComplete } = useTypewriter(narrativeContent, 50);
+    const { displayedText, isComplete } = useTypewriter(narrativeContent, 40);
+
     const [isGenerating, setIsGenerating] = useState(false);
     const [loadingText, setLoadingText] = useState("");
     const [showResultModal, setShowResultModal] = useState(false);
@@ -72,8 +75,13 @@ export default function ChatWindow() {
                 body: JSON.stringify({ tarotContext: card, mode: "reveal", lang }),
             });
             const data = await response.json();
-            if (data.content) setNarrativeContent(data.content);
-        } finally { setIsLoading(false); }
+            if (data.content) {
+                // 데이터가 도착하는 즉시 narrativeContent를 설정하여 로딩 UI와 교체 [cite: 2026-02-16]
+                setNarrativeContent(data.content);
+            }
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleRemoveItem = (type: 'object' | 'color', value: string) => {
@@ -91,11 +99,8 @@ export default function ChatWindow() {
         setInput("");
         addMessage("user", userInput);
 
-        if (collectedElements.objects.length < 3) {
-            setCollectedElements(prev => ({ ...prev, objects: [...prev.objects, userInput] }));
-        } else if (collectedElements.colors.length < 2) {
-            setCollectedElements(prev => ({ ...prev, colors: [...prev.colors, userInput] }));
-        }
+        if (collectedElements.objects.length < 3) setCollectedElements(prev => ({ ...prev, objects: [...prev.objects, userInput] }));
+        else if (collectedElements.colors.length < 2) setCollectedElements(prev => ({ ...prev, colors: [...prev.colors, userInput] }));
 
         setIsLoading(true);
         try {
@@ -145,7 +150,6 @@ export default function ChatWindow() {
 
     return (
         <div className="flex flex-col h-screen w-full max-w-2xl mx-auto relative overflow-hidden bg-black font-serif text-white">
-            {/* [V0.5.5] Language Toggle */}
             <div className="absolute top-6 right-6 z-[100]">
                 <button onClick={() => setLang(l => l === "ko" ? "en" : "ko")} className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] text-amber-200/80 hover:bg-white/10 transition-all font-serif">
                     <Languages className="w-3 h-3" /> {lang === "ko" ? "EN" : "KO"}
@@ -155,8 +159,7 @@ export default function ChatWindow() {
             <AnimatePresence mode="wait">
                 {ritualStep === "complete" && (
                     <motion.div key="workshop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col h-full">
-                        {/* 상단 고정: 카드 프리뷰 */}
-                        <div className="flex-none pt-12 pb-6 flex flex-col items-center border-b border-white/5 bg-black/40 backdrop-blur-md">
+                        <div className="flex-none pt-12 pb-4 flex flex-col items-center bg-black/40 backdrop-blur-sm border-b border-white/5">
                             <div className="relative w-32 aspect-[2/3] shadow-[0_0_30px_rgba(251,191,36,0.2)] rounded-lg overflow-hidden border border-white/10">
                                 {tarotCard && <img src={`/cards/${tarotCard.id}.jpg`} alt="Life Card" className="w-full h-full object-cover opacity-80" />}
                                 <div className="absolute inset-0 mix-blend-overlay" style={{ background: collectedElements.colors.length > 0 ? `linear-gradient(45deg, ${collectedElements.colors[0]}, ${collectedElements.colors[1] || 'transparent'})` : 'transparent' }} />
@@ -170,8 +173,6 @@ export default function ChatWindow() {
                                 ))}
                             </div>
                         </div>
-
-                        {/* 중앙: 대화 영역 */}
                         <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-hide space-y-6" ref={messagesEndRef}>
                             {messages.map(msg => (
                                 <div key={msg.id} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}>
@@ -179,8 +180,6 @@ export default function ChatWindow() {
                                 </div>
                             ))}
                         </div>
-
-                        {/* 하단: 입력창 */}
                         <div className="flex-none p-6 pb-10">
                             {collectedElements.objects.length >= 3 && collectedElements.colors.length >= 2 && (
                                 <button onClick={generateStainedGlass} className="w-full mb-6 py-4 bg-amber-600/90 text-white rounded-full shadow-lg flex items-center justify-center gap-2 font-serif transition-all hover:bg-amber-600">
@@ -188,7 +187,7 @@ export default function ChatWindow() {
                                 </button>
                             )}
                             <form onSubmit={handleSendMessage}>
-                                <input value={input} onChange={e => setInput(e.target.value)} placeholder={T.placeholder} className="w-full bg-white/5 border border-white/10 rounded-full py-4 px-6 text-center focus:outline-none focus:border-amber-500/50 transition-all placeholder:text-white/20 font-serif" />
+                                <input value={input} onChange={e => setInput(e.target.value)} placeholder={T.placeholder} className="w-full bg-white/5 border border-white/10 rounded-full py-4 px-6 text-center focus:outline-none focus:border-amber-500/50 transition-all font-serif placeholder:text-white/20" />
                             </form>
                         </div>
                     </motion.div>
@@ -215,16 +214,26 @@ export default function ChatWindow() {
                             </div>
                         )}
                         {ritualStep === "narrative" && (
-                            <div key="narrative" className="max-w-md">
-                                {isLoading && !narrativeContent ? (
-                                    <p className="text-amber-100 animate-pulse">{T.loading}</p>
+                            <div key="narrative" className="max-w-md min-h-[200px] flex flex-col items-center justify-center">
+                                {/* [V0.5.1 FIX] 데이터가 오기 전까지 로딩 문구 강제 유지 [cite: 2026-02-16] */}
+                                {(!narrativeContent) ? (
+                                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-amber-100 animate-pulse text-lg">
+                                        {T.loading}
+                                    </motion.p>
                                 ) : (
-                                    <>
-                                        <p className="text-amber-100 leading-loose whitespace-pre-wrap">{displayedText}</p>
-                                        {isComplete && narrativeContent && (
-                                            <button onClick={() => { setRitualStep("complete"); addMessage("ai", `${USER_NAME}${T.inv}`); }} className="mt-10 px-8 py-3 border border-amber-500/40 text-amber-200 rounded-full hover:bg-amber-900/20 transition-all font-serif">{T.start} <ChevronRight className="inline w-4 h-4 ml-1" /></button>
+                                    <div className="w-full">
+                                        <p className="text-amber-100 leading-relaxed text-lg whitespace-pre-wrap">{displayedText}</p>
+                                        {isComplete && (
+                                            <motion.button
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                onClick={() => { setRitualStep("complete"); addMessage("ai", `${USER_NAME}${T.inv}`); }}
+                                                className="mt-12 px-10 py-3.5 border border-amber-500/40 text-amber-200 rounded-full hover:bg-amber-900/20 transition-all font-serif text-sm tracking-widest"
+                                            >
+                                                {T.start} <ChevronRight className="inline w-4 h-4 ml-1" />
+                                            </motion.button>
                                         )}
-                                    </>
+                                    </div>
                                 )}
                             </div>
                         )}
